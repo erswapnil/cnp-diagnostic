@@ -1,109 +1,381 @@
 #!/bin/bash
 
-# --- EDB/Postgres Cluster Diagnostic Collector (Master Version) ---
+# --- EDB/Postgres Cluster Diagnostic Collector ---
 
-read -p "Enter the Namespace of the Cluster: " NAMESPACE
-read -p "Enter the Cluster Name: " CLUSTER_NAME
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# 0. PRE-FLIGHT CHECKS
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
-echo "Select Operator Variant:"
-echo "1) CNP (Cloud Native Postgres - EDB)"
-echo "2) CNPG (CloudNativePG - Community)"
-read -p "Enter choice [1 or 2]: " VARIANT_CHOICE
+check_cmd() {
+    if ! command -v "$1" &>/dev/null; then
+        echo "ERROR: Required command '$1' not found. Please install it and re-run."
+        exit 1
+    fi
+}
 
-OP_CMD=$([ "$VARIANT_CHOICE" == "1" ] && echo "cnp" || echo "cnpg")
+check_cmd kubectl
+check_cmd tar
 
-# 1. Directory Setup
+# yq is optional but required for cleaned cluster YAML
+YQ_AVAILABLE=false
+if command -v yq &>/dev/null; then
+    YQ_AVAILABLE=true
+else
+    echo "WARNING: 'yq' not found â cluster YAML will be saved as-is (no field stripping)."
+    echo "         Install yq (https://github.com/mikefarah/yq) for a cleaner output."
+    echo ""
+fi
+
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# 1. CLUSTER DISCOVERY & SELECTION
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
+echo "=== Discovering clusters in your Kubernetes context ==="
+echo ""
+
+# Detect CNPG/CNP clusters (Cluster CRD)
+mapfile -t CNPG_RAW < <(kubectl get cluster -A --no-headers \
+    -o custom-columns="NS:.metadata.namespace,NAME:.metadata.name" 2>/dev/null || true)
+
+# Detect PGD groups (PGDGroup CRD)
+mapfile -t PGD_RAW < <(kubectl get pgdgroups -A --no-headers \
+    -o custom-columns="NS:.metadata.namespace,NAME:.metadata.name" 2>/dev/null || true)
+
+CLUSTERS=()
+CLUSTER_TYPES=()
+
+for entry in "${CNPG_RAW[@]}"; do
+    [[ -z "${entry// /}" ]] && continue
+    CLUSTERS+=("$entry")
+    CLUSTER_TYPES+=("CNPG/CNP")
+done
+for entry in "${PGD_RAW[@]}"; do
+    [[ -z "${entry// /}" ]] && continue
+    CLUSTERS+=("$entry")
+    CLUSTER_TYPES+=("PGD4K")
+done
+
+IS_PGD=false
+VARIANT_CHOICE=""
+
+if [ ${#CLUSTERS[@]} -eq 0 ]; then
+    echo "No clusters detected automatically. Falling back to manual entry."
+    echo ""
+    read -rp "Enter the Namespace of the Cluster: " NAMESPACE
+    read -rp "Enter the Cluster Name: " CLUSTER_NAME
+    echo ""
+    echo "Select Operator Variant:"
+    echo "  1) CNP  (Cloud Native Postgres - EDB)"
+    echo "  2) CNPG (CloudNativePG - Community)"
+    echo "  3) PGD4K (EDB Postgres Distributed for Kubernetes)"
+    read -rp "Enter choice [1, 2, or 3]: " VARIANT_CHOICE
+else
+    echo "Detected clusters:"
+    for i in "${!CLUSTERS[@]}"; do
+        NS=$(echo "${CLUSTERS[$i]}"   | awk '{print $1}')
+        NAME=$(echo "${CLUSTERS[$i]}" | awk '{print $2}')
+        TYPE="${CLUSTER_TYPES[$i]}"
+        printf "  %2d) [%-8s] %-40s (namespace: %s)\n" "$((i+1))" "$TYPE" "$NAME" "$NS"
+    done
+    MANUAL_IDX=$(( ${#CLUSTERS[@]} + 1 ))
+    echo "  ${MANUAL_IDX}) Enter manually"
+    echo ""
+    read -rp "Select cluster [1-${MANUAL_IDX}]: " SEL
+
+    if [[ "$SEL" =~ ^[0-9]+$ ]] && [ "$SEL" -ge 1 ] && [ "$SEL" -le "${#CLUSTERS[@]}" ]; then
+        IDX=$(( SEL - 1 ))
+        NAMESPACE=$(echo  "${CLUSTERS[$IDX]}" | awk '{print $1}')
+        CLUSTER_NAME=$(echo "${CLUSTERS[$IDX]}" | awk '{print $2}')
+        DETECTED_TYPE="${CLUSTER_TYPES[$IDX]}"
+
+        if [ "$DETECTED_TYPE" = "PGD4K" ]; then
+            VARIANT_CHOICE=3
+        else
+            echo ""
+            echo "Select Operator Variant for ${CLUSTER_NAME}:"
+            echo "  1) CNP  (Cloud Native Postgres - EDB)"
+            echo "  2) CNPG (CloudNativePG - Community)"
+            read -rp "Enter choice [1 or 2]: " VARIANT_CHOICE
+        fi
+    else
+        echo ""
+        read -rp "Enter the Namespace of the Cluster: " NAMESPACE
+        read -rp "Enter the Cluster Name: " CLUSTER_NAME
+        echo ""
+        echo "Select Operator Variant:"
+        echo "  1) CNP  (Cloud Native Postgres - EDB)"
+        echo "  2) CNPG (CloudNativePG - Community)"
+        echo "  3) PGD4K (EDB Postgres Distributed for Kubernetes)"
+        read -rp "Enter choice [1, 2, or 3]: " VARIANT_CHOICE
+    fi
+fi
+
+case "$VARIANT_CHOICE" in
+    1) OP_CMD="cnp"  ;;
+    2) OP_CMD="cnpg" ;;
+    3) OP_CMD="cnp"; IS_PGD=true ;;
+    *) echo "Invalid choice, defaulting to cnpg."; OP_CMD="cnpg" ;;
+esac
+
+echo ""
+echo "Target: namespace=${NAMESPACE}  cluster=${CLUSTER_NAME}  variant=${OP_CMD}$([ "$IS_PGD" = true ] && echo ' (PGD4K)')"
+echo ""
+
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# 2. DIRECTORY SETUP
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 MAIN_DIR="edb_diag_${CLUSTER_NAME}_${TIMESTAMP}"
-mkdir -p "$MAIN_DIR/cluster_info" "$MAIN_DIR/operator_info/logs" "$MAIN_DIR/pods" "$MAIN_DIR/storage"
+
+DIRS=(
+    "$MAIN_DIR/cluster_info"
+    "$MAIN_DIR/operator_info/logs"
+    "$MAIN_DIR/pods"
+    "$MAIN_DIR/storage"
+)
+[ "$IS_PGD" = true ] && DIRS+=("$MAIN_DIR/pgd_info")
+
+mkdir -p "${DIRS[@]}"
+
+# Verify all directories were created
+for dir in "${DIRS[@]}"; do
+    if [ ! -d "$dir" ]; then
+        echo "ERROR: Failed to create directory: $dir â check permissions and disk space."
+        exit 1
+    fi
+done
 
 echo "Starting comprehensive collection..."
 
-# 2. Operator Discovery & Versioning
-OP_POD_INFO=$(kubectl get pods -A -l app.kubernetes.io/name=cloud-native-postgresql --no-headers | head -n 1)
-OP_NS=$(echo "$OP_POD_INFO" | awk '{print $1}')
-OP_POD_NAME=$(echo "$OP_POD_INFO" | awk '{print $2}')
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# 3. OPERATOR DISCOVERY & VERSIONING
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
-if [ ! -z "$OP_POD_NAME" ]; then
-    kubectl get pod "$OP_POD_NAME" -n "$OP_NS" -o jsonpath='{.spec.containers[0].image}' > "$MAIN_DIR/operator_info/operator_version.txt"
-    kubectl get deployment -n "$OP_NS" -l app.kubernetes.io/name=cloud-native-postgresql -o yaml > "$MAIN_DIR/operator_info/operator_manifest.yaml"
-    kubectl logs "$OP_POD_NAME" -n "$OP_NS" > "$MAIN_DIR/operator_info/logs/operator.log"
+find_op_pod() {
+    kubectl get pods -A -l "$1" --no-headers 2>/dev/null | head -n 1
+}
+
+if [ "$IS_PGD" = true ]; then
+    OP_POD_INFO=$(find_op_pod "app.kubernetes.io/name=edb-postgres-distributed-for-kubernetes")
+    [ -z "$OP_POD_INFO" ] && OP_POD_INFO=$(find_op_pod "app.kubernetes.io/name=pgd-operator")
+else
+    OP_POD_INFO=$(find_op_pod "app.kubernetes.io/name=cloud-native-postgresql")
+    [ -z "$OP_POD_INFO" ] && OP_POD_INFO=$(find_op_pod "app.kubernetes.io/name=cloudnativepg")
 fi
 
-# Barman Plugin Version
-BARMAN_POD_INFO=$(kubectl get pods -A --no-headers | grep "barman-cloud" | head -n 1)
-if [ ! -z "$BARMAN_POD_INFO" ]; then
-    B_NS=$(echo $BARMAN_POD_INFO | awk '{print $1}')
-    B_NAME=$(echo $BARMAN_POD_INFO | awk '{print $2}')
-    kubectl get pod "$B_NAME" -n "$B_NS" -o jsonpath='{.spec.containers[0].image}' > "$MAIN_DIR/operator_info/barman_plugin_version.txt"
+if [ -n "$OP_POD_INFO" ]; then
+    OP_NS=$(echo "$OP_POD_INFO"      | awk '{print $1}')
+    OP_POD_NAME=$(echo "$OP_POD_INFO" | awk '{print $2}')
+    echo "  Found operator pod: ${OP_POD_NAME} (ns: ${OP_NS})"
+
+    kubectl get pod "$OP_POD_NAME" -n "$OP_NS" \
+        -o jsonpath='{.spec.containers[0].image}' \
+        > "$MAIN_DIR/operator_info/operator_version.txt" 2>/dev/null || true
+
+    kubectl get deployment -n "$OP_NS" -o yaml \
+        > "$MAIN_DIR/operator_info/operator_manifest.yaml" 2>/dev/null || true
+
+    kubectl logs "$OP_POD_NAME" -n "$OP_NS" \
+        > "$MAIN_DIR/operator_info/logs/operator.log" 2>/dev/null || true
+
+    kubectl logs "$OP_POD_NAME" -n "$OP_NS" --previous \
+        > "$MAIN_DIR/operator_info/logs/operator_previous.log" 2>/dev/null || true
+else
+    echo "  WARNING: Operator pod not found â skipping operator-level collection."
 fi
 
-# 3. Cluster Level Diagnostics
-kubectl get cluster "$CLUSTER_NAME" -n "$NAMESPACE" -o yaml > "$MAIN_DIR/cluster_info/cluster_definition.yaml"
-kubectl "$OP_CMD" status "$CLUSTER_NAME" -n "$NAMESPACE" > "$MAIN_DIR/cluster_info/cluster_status.txt"
-kubectl get backup -n "$NAMESPACE" > "$MAIN_DIR/cluster_info/available_backups.txt"
-kubectl get events -n "$NAMESPACE" --sort-by='.lastTimestamp' > "$MAIN_DIR/cluster_info/namespace_events.txt"
-kubectl get pvc -n "$NAMESPACE" > "$MAIN_DIR/storage/pvc_list.txt"
-kubectl get pv > "$MAIN_DIR/storage/all_pv_list.txt"
+# Barman Cloud plugin
+BARMAN_POD_INFO=$(kubectl get pods -A --no-headers 2>/dev/null | grep "barman-cloud" | head -n 1 || true)
+if [ -n "$BARMAN_POD_INFO" ]; then
+    B_NS=$(echo "$BARMAN_POD_INFO"   | awk '{print $1}')
+    B_NAME=$(echo "$BARMAN_POD_INFO" | awk '{print $2}')
+    kubectl get pod "$B_NAME" -n "$B_NS" \
+        -o jsonpath='{.spec.containers[0].image}' \
+        > "$MAIN_DIR/operator_info/barman_plugin_version.txt" 2>/dev/null || true
+fi
 
-# 4. Pod & Multi-Database Diagnostics
-PODS=$(kubectl get pods -n "$NAMESPACE" -l "cnpg.io/cluster=$CLUSTER_NAME" -o jsonpath='{.items[*].metadata.name}')
-[ -z "$PODS" ] && PODS=$(kubectl get pods -n "$NAMESPACE" --no-headers -o custom-columns=":metadata.name" | grep "^${CLUSTER_NAME}-")
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# 4. CLUSTER-LEVEL DIAGNOSTICS
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
+echo "Collecting cluster-level info..."
+
+RESOURCE_TYPE="cluster"
+[ "$IS_PGD" = true ] && RESOURCE_TYPE="pgdgroup"
+
+# Cleaned cluster YAML (strips noise fields for readability)
+if [ "$YQ_AVAILABLE" = true ]; then
+    kubectl get "$RESOURCE_TYPE" "$CLUSTER_NAME" -n "$NAMESPACE" -o yaml 2>/dev/null | \
+        yq 'del(.status,
+                .metadata.uid,
+                .metadata.selfLink,
+                .metadata.resourceVersion,
+                .metadata.creationTimestamp,
+                .metadata.generation,
+                .metadata.managedFields)' \
+        > "$MAIN_DIR/cluster_info/cluster_definition_clean.yaml" || true
+fi
+
+# Always keep the full YAML as well
+kubectl get "$RESOURCE_TYPE" "$CLUSTER_NAME" -n "$NAMESPACE" -o yaml \
+    > "$MAIN_DIR/cluster_info/cluster_definition_full.yaml" 2>/dev/null || true
+
+kubectl "$OP_CMD" status "$CLUSTER_NAME" -n "$NAMESPACE" \
+    > "$MAIN_DIR/cluster_info/cluster_status.txt" 2>/dev/null || true
+
+# Backups â full YAML detail plus plugin summary
+kubectl get backup -n "$NAMESPACE" -o yaml \
+    > "$MAIN_DIR/cluster_info/backups.yaml" 2>/dev/null || true
+kubectl "$OP_CMD" get backups "$CLUSTER_NAME" -n "$NAMESPACE" \
+    > "$MAIN_DIR/cluster_info/backups_summary.txt" 2>/dev/null || true
+
+kubectl get events -n "$NAMESPACE" --sort-by='.lastTimestamp' \
+    > "$MAIN_DIR/cluster_info/namespace_events.txt" 2>/dev/null || true
+
+kubectl get pvc -n "$NAMESPACE" \
+    > "$MAIN_DIR/storage/pvc_list.txt" 2>/dev/null || true
+kubectl get pv \
+    > "$MAIN_DIR/storage/all_pv_list.txt" 2>/dev/null || true
+
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# 5. PGD4K-SPECIFIC DIAGNOSTICS
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
+if [ "$IS_PGD" = true ]; then
+    echo "Collecting PGD-specific diagnostics..."
+
+    kubectl get pgdgroups -n "$NAMESPACE" -o yaml \
+        > "$MAIN_DIR/pgd_info/pgdgroups.yaml" 2>/dev/null || true
+
+    kubectl cnp pgd show-nodes "$CLUSTER_NAME" -n "$NAMESPACE" \
+        > "$MAIN_DIR/pgd_info/show_nodes.txt" 2>/dev/null || true
+
+    kubectl cnp pgd show-group "$CLUSTER_NAME" -n "$NAMESPACE" \
+        > "$MAIN_DIR/pgd_info/show_group.txt" 2>/dev/null || true
+
+    kubectl cnp pgd show-replslots "$CLUSTER_NAME" -n "$NAMESPACE" \
+        > "$MAIN_DIR/pgd_info/show_replslots.txt" 2>/dev/null || true
+fi
+
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# 6. POD & DATABASE DIAGNOSTICS
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
+PODS=$(kubectl get pods -n "$NAMESPACE" -l "cnpg.io/cluster=$CLUSTER_NAME" \
+    -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || true)
+
+# Fallback: match pods by name prefix
+if [ -z "$PODS" ]; then
+    PODS=$(kubectl get pods -n "$NAMESPACE" --no-headers \
+        -o custom-columns=":metadata.name" 2>/dev/null | grep "^${CLUSTER_NAME}-" | tr '\n' ' ' || true)
+fi
+
+if [ -z "$PODS" ]; then
+    echo "WARNING: No pods found for cluster '${CLUSTER_NAME}' in namespace '${NAMESPACE}'."
+fi
 
 for POD in $PODS; do
     echo "--- Processing Pod: $POD ---"
     POD_DIR="$MAIN_DIR/pods/$POD"
     mkdir -p "$POD_DIR/postgresql"
 
-    # Pod-level SQL diagnostics
     run_pod_sql() {
-        kubectl exec -n "$NAMESPACE" "$POD" -c postgres -- psql -U postgres -c "$1" > "$POD_DIR/postgresql/$2" 2>/dev/null
+        kubectl exec -n "$NAMESPACE" "$POD" -c postgres -- \
+            psql -U postgres -c "$1" > "$POD_DIR/postgresql/$2" 2>/dev/null || true
     }
 
-    run_pod_sql "SELECT version();" "db_version.out"
-    run_pod_sql "SHOW ALL;" "show_all.out"
-    run_pod_sql "SELECT * FROM pg_stat_replication;" "replication.out"
-    run_pod_sql "SELECT * FROM pg_replication_slots;" "replication_slots.out"
-    run_pod_sql "SELECT * FROM pg_stat_bgwriter;" "bgwriter.out"
-    run_pod_sql "SELECT * FROM pg_stat_archiver;" "archiver.out"
-    
-    # Activity summary
-    QUERY_ACT="SELECT COALESCE(state, 'internal/background') AS state, count(*) FROM pg_stat_activity GROUP BY 1 UNION ALL SELECT 'Total', count(*) FROM pg_stat_activity ORDER BY (state = 'Total') ASC, count DESC;"
+    run_pod_sql "SELECT version();"                                                "db_version.out"
+    run_pod_sql "SHOW ALL;"                                                        "show_all.out"
+    run_pod_sql "SELECT * FROM pg_stat_replication;"                               "replication.out"
+    run_pod_sql "SELECT * FROM pg_replication_slots;"                              "replication_slots.out"
+    run_pod_sql "SELECT * FROM pg_stat_bgwriter;"                                  "bgwriter.out"
+    run_pod_sql "SELECT * FROM pg_stat_archiver;"                                  "archiver.out"
+
+    QUERY_ACT="SELECT COALESCE(state,'internal/background') AS state, count(*) \
+FROM pg_stat_activity GROUP BY 1 \
+UNION ALL SELECT 'Total', count(*) FROM pg_stat_activity \
+ORDER BY (state='Total') ASC, count DESC;"
     run_pod_sql "$QUERY_ACT" "activity_counts.out"
 
-    # Database-level deep dive
-    DB_LIST=$(kubectl exec -n "$NAMESPACE" "$POD" -c postgres -- psql -U postgres -t -c "SELECT datname FROM pg_database WHERE datallowconn AND NOT datname LIKE 'template%';" | xargs)
+    # Per-database deep dive
+    DB_LIST=$(kubectl exec -n "$NAMESPACE" "$POD" -c postgres -- \
+        psql -U postgres -t -c \
+        "SELECT datname FROM pg_database WHERE datallowconn AND datname NOT LIKE 'template%';" \
+        2>/dev/null | xargs || true)
 
     for DB in $DB_LIST; do
         echo "   -> Collecting from Database: $DB"
-        DB_SUBDIR="$POD_DIR/postgresql/db_$DB"
+        DB_SUBDIR="$POD_DIR/postgresql/db_${DB}"
         mkdir -p "$DB_SUBDIR"
 
         run_db_sql() {
-            kubectl exec -n "$NAMESPACE" "$POD" -c postgres -- psql -U postgres -d "$DB" -c "$1" > "$DB_SUBDIR/$2" 2>/dev/null
+            kubectl exec -n "$NAMESPACE" "$POD" -c postgres -- \
+                psql -U postgres -d "$DB" -c "$1" > "$DB_SUBDIR/$2" 2>/dev/null || true
         }
 
-        run_db_sql "SELECT * FROM pg_available_extensions WHERE installed_version IS NOT NULL;" "extensions.out"
-        run_db_sql "SELECT * FROM pg_stat_user_tables;" "pg_stat_user_tables.out"
-        run_db_sql "SELECT relname, n_live_tup, n_dead_tup FROM pg_stat_user_tables ORDER BY 3 DESC;" "table_tuples.out"
-        run_db_sql "SELECT schemaname, relname, pg_size_pretty(pg_relation_size(relid)) as actual_size, n_dead_tup, last_autovacuum FROM pg_stat_all_tables ORDER BY n_dead_tup DESC;" "database_bloat.out"
-        run_db_sql "SELECT schemaname, relname, indexrelname, pg_size_pretty(pg_relation_size(indexrelid)) AS index_size, idx_scan FROM pg_stat_user_indexes ORDER BY pg_relation_size(indexrelid) DESC;" "index_bloat.out"
-        run_db_sql "SELECT * FROM pg_locks;" "pg_locks.out"
-        run_db_sql "SELECT * FROM pg_stat_activity;" "pg_stat_activity.out"
+        run_db_sql "SELECT * FROM pg_available_extensions WHERE installed_version IS NOT NULL;" \
+            "extensions.out"
+        run_db_sql "SELECT * FROM pg_stat_user_tables;"                              "pg_stat_user_tables.out"
+        run_db_sql "SELECT relname, n_live_tup, n_dead_tup FROM pg_stat_user_tables ORDER BY 3 DESC;" \
+            "table_tuples.out"
+        run_db_sql "SELECT schemaname, relname, \
+pg_size_pretty(pg_relation_size(relid)) AS actual_size, \
+n_dead_tup, last_autovacuum \
+FROM pg_stat_all_tables ORDER BY n_dead_tup DESC;"                                   "database_bloat.out"
+        run_db_sql "SELECT schemaname, relname, indexrelname, \
+pg_size_pretty(pg_relation_size(indexrelid)) AS index_size, idx_scan \
+FROM pg_stat_user_indexes ORDER BY pg_relation_size(indexrelid) DESC;"               "index_bloat.out"
+        run_db_sql "SELECT * FROM pg_locks;"                                         "pg_locks.out"
+        run_db_sql "SELECT * FROM pg_stat_activity;"                                 "pg_stat_activity.out"
 
-        # Blocking logic
-        BLOCK_Q1="SELECT blocked_locks.pid AS blocked_pid, blocked_activity.usename AS blocked_user, now() - blocked_activity.query_start AS blocked_duration, blocking_locks.pid AS blocking_pid, blocking_activity.usename AS blocking_user, now() - blocking_activity.query_start AS blocking_duration, blocked_activity.query AS blocked_statement, blocking_activity.query AS blocking_statement FROM pg_catalog.pg_locks AS blocked_locks JOIN pg_catalog.pg_stat_activity AS blocked_activity ON blocked_activity.pid = blocked_locks.pid JOIN pg_catalog.pg_locks AS blocking_locks ON blocking_locks.locktype = blocked_locks.locktype AND blocking_locks.DATABASE IS NOT DISTINCT FROM blocked_locks.DATABASE AND blocking_locks.relation IS NOT DISTINCT FROM blocked_locks.relation AND blocking_locks.page IS NOT DISTINCT FROM blocked_locks.page AND blocking_locks.tuple IS NOT DISTINCT FROM blocked_locks.tuple AND blocking_locks.virtualxid IS NOT DISTINCT FROM blocked_locks.virtualxid AND blocking_locks.transactionid IS NOT DISTINCT FROM blocked_locks.transactionid AND blocking_locks.classid IS NOT DISTINCT FROM blocked_locks.classid AND blocking_locks.objid IS NOT DISTINCT FROM blocked_locks.objid AND blocking_locks.objsubid IS NOT DISTINCT FROM blocked_locks.objsubid AND blocking_locks.pid != blocked_locks.pid JOIN pg_catalog.pg_stat_activity AS blocking_activity ON blocking_activity.pid = blocking_locks.pid WHERE NOT blocked_locks.granted;"
+        # Detailed blocking tree
+        BLOCK_Q1="SELECT \
+  blocked_locks.pid               AS blocked_pid, \
+  blocked_activity.usename        AS blocked_user, \
+  now() - blocked_activity.query_start AS blocked_duration, \
+  blocking_locks.pid              AS blocking_pid, \
+  blocking_activity.usename       AS blocking_user, \
+  now() - blocking_activity.query_start AS blocking_duration, \
+  blocked_activity.query          AS blocked_statement, \
+  blocking_activity.query         AS blocking_statement \
+FROM pg_catalog.pg_locks AS blocked_locks \
+JOIN pg_catalog.pg_stat_activity AS blocked_activity  ON blocked_activity.pid  = blocked_locks.pid \
+JOIN pg_catalog.pg_locks AS blocking_locks \
+  ON blocking_locks.locktype = blocked_locks.locktype \
+ AND blocking_locks.DATABASE          IS NOT DISTINCT FROM blocked_locks.DATABASE \
+ AND blocking_locks.relation          IS NOT DISTINCT FROM blocked_locks.relation \
+ AND blocking_locks.page              IS NOT DISTINCT FROM blocked_locks.page \
+ AND blocking_locks.tuple             IS NOT DISTINCT FROM blocked_locks.tuple \
+ AND blocking_locks.virtualxid        IS NOT DISTINCT FROM blocked_locks.virtualxid \
+ AND blocking_locks.transactionid     IS NOT DISTINCT FROM blocked_locks.transactionid \
+ AND blocking_locks.classid           IS NOT DISTINCT FROM blocked_locks.classid \
+ AND blocking_locks.objid             IS NOT DISTINCT FROM blocked_locks.objid \
+ AND blocking_locks.objsubid          IS NOT DISTINCT FROM blocked_locks.objsubid \
+ AND blocking_locks.pid != blocked_locks.pid \
+JOIN pg_catalog.pg_stat_activity AS blocking_activity ON blocking_activity.pid = blocking_locks.pid \
+WHERE NOT blocked_locks.granted;"
         run_db_sql "$BLOCK_Q1" "blocking_analysis_detailed.out"
-        
-        BLOCK_Q2="SELECT activity.pid, activity.usename, activity.query, blocking.pid AS blocking_id, blocking.query AS blocking_query FROM pg_stat_activity AS activity JOIN pg_stat_activity AS blocking ON blocking.pid = ANY(pg_blocking_pids(activity.pid));"
+
+        BLOCK_Q2="SELECT activity.pid, activity.usename, activity.query, \
+  blocking.pid AS blocking_id, blocking.query AS blocking_query \
+FROM pg_stat_activity AS activity \
+JOIN pg_stat_activity AS blocking ON blocking.pid = ANY(pg_blocking_pids(activity.pid));"
         run_db_sql "$BLOCK_Q2" "blocking_summary.out"
     done
 
-    kubectl describe pod "$POD" -n "$NAMESPACE" > "$POD_DIR/describe_result.txt"
-    kubectl logs "$POD" -n "$NAMESPACE" -c postgres > "$POD_DIR/postgresql/postgres.log"
+    kubectl describe pod "$POD" -n "$NAMESPACE" \
+        > "$POD_DIR/describe_result.txt" 2>/dev/null || true
+    kubectl logs "$POD" -n "$NAMESPACE" -c postgres \
+        > "$POD_DIR/postgresql/postgres.log" 2>/dev/null || true
+    kubectl logs "$POD" -n "$NAMESPACE" -c postgres --previous \
+        > "$POD_DIR/postgresql/postgres_previous.log" 2>/dev/null || true
 done
 
-# 5. Packaging and Cleanup
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# 7. PACKAGING
+# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+
 echo "--------------------------------------------------------"
 tar -czf "${MAIN_DIR}.tar.gz" "$MAIN_DIR"
 rm -rf "$MAIN_DIR"
