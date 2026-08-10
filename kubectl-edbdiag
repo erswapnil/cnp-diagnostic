@@ -1,172 +1,236 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# ============================================================
+#  EDB / Postgres Cluster Diagnostic Collector (kubectl-edbdiag)
+#  Supports:
+#    1) CNP   - EDB Postgres for Kubernetes
+#    2) CNPG  - CloudNativePG (community)
+#    3) PGD4K - EDB Postgres Distributed for Kubernetes
+# ============================================================
 
-# --- EDB/Postgres Cluster Diagnostic Collector ---
+set -uo pipefail
 
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ------------------------------------------------------------
 # 0. PRE-FLIGHT CHECKS
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
+# ------------------------------------------------------------
 check_cmd() {
     if ! command -v "$1" &>/dev/null; then
         echo "ERROR: Required command '$1' not found. Please install it and re-run."
         exit 1
     fi
 }
-
 check_cmd kubectl
 check_cmd tar
 
-# yq is optional but required for cleaned cluster YAML
 YQ_AVAILABLE=false
 if command -v yq &>/dev/null; then
     YQ_AVAILABLE=true
 else
-    echo "WARNING: 'yq' not found â cluster YAML will be saved as-is (no field stripping)."
+    echo "WARNING: 'yq' not found - cluster YAML will be saved as-is (no field stripping)."
     echo "         Install yq (https://github.com/mikefarah/yq) for a cleaner output."
     echo ""
 fi
 
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-# 1. CLUSTER DISCOVERY & SELECTION
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# Portable replacement for `mapfile`/`readarray` (bash 4+ only). macOS ships
+# bash 3.2 by default, which does not have mapfile - this was the root cause
+# of the "mapfile: command not found" errors seen when running the plugin.
+collect_lines() {
+    # usage: collect_lines ARRAY_NAME <<< "$(some command)"
+    local __name="$1"
+    local __line
+    eval "$__name=()"
+    while IFS= read -r __line; do
+        [[ -z "${__line// /}" ]] && continue
+        eval "$__name+=(\"\$__line\")"
+    done
+}
 
-echo "=== Discovering clusters in your Kubernetes context ==="
-echo ""
+lower() { echo "$1" | tr '[:upper:]' '[:lower:]'; }
 
-# Detect CNPG/CNP clusters (Cluster CRD)
-mapfile -t CNPG_RAW < <(kubectl get cluster -A --no-headers \
-    -o custom-columns="NS:.metadata.namespace,NAME:.metadata.name" 2>/dev/null || true)
-
-# Detect PGD groups (PGDGroup CRD)
-mapfile -t PGD_RAW < <(kubectl get pgdgroups -A --no-headers \
-    -o custom-columns="NS:.metadata.namespace,NAME:.metadata.name" 2>/dev/null || true)
-
-CLUSTERS=()
-CLUSTER_TYPES=()
-
-for entry in "${CNPG_RAW[@]}"; do
-    [[ -z "${entry// /}" ]] && continue
-    CLUSTERS+=("$entry")
-    CLUSTER_TYPES+=("CNPG/CNP")
-done
-for entry in "${PGD_RAW[@]}"; do
-    [[ -z "${entry// /}" ]] && continue
-    CLUSTERS+=("$entry")
-    CLUSTER_TYPES+=("PGD4K")
-done
+# ------------------------------------------------------------
+# 1. OPERATOR VARIANT SELECTION (always asked first now)
+# ------------------------------------------------------------
+echo "Select Operator Variant:"
+echo "  1) CNP   (EDB Postgres for Kubernetes)"
+echo "  2) CNPG  (CloudNativePG - Community)"
+echo "  3) PGD4K (EDB Postgres Distributed for Kubernetes)"
+read -rp "Enter choice [1, 2, or 3]: " VARIANT_CHOICE
 
 IS_PGD=false
-VARIANT_CHOICE=""
-
-if [ ${#CLUSTERS[@]} -eq 0 ]; then
-    echo "No clusters detected automatically. Falling back to manual entry."
-    echo ""
-    read -rp "Enter the Namespace of the Cluster: " NAMESPACE
-    read -rp "Enter the Cluster Name: " CLUSTER_NAME
-    echo ""
-    echo "Select Operator Variant:"
-    echo "  1) CNP  (Cloud Native Postgres - EDB)"
-    echo "  2) CNPG (CloudNativePG - Community)"
-    echo "  3) PGD4K (EDB Postgres Distributed for Kubernetes)"
-    read -rp "Enter choice [1, 2, or 3]: " VARIANT_CHOICE
-else
-    echo "Detected clusters:"
-    for i in "${!CLUSTERS[@]}"; do
-        NS=$(echo "${CLUSTERS[$i]}"   | awk '{print $1}')
-        NAME=$(echo "${CLUSTERS[$i]}" | awk '{print $2}')
-        TYPE="${CLUSTER_TYPES[$i]}"
-        printf "  %2d) [%-8s] %-40s (namespace: %s)\n" "$((i+1))" "$TYPE" "$NAME" "$NS"
-    done
-    MANUAL_IDX=$(( ${#CLUSTERS[@]} + 1 ))
-    echo "  ${MANUAL_IDX}) Enter manually"
-    echo ""
-    read -rp "Select cluster [1-${MANUAL_IDX}]: " SEL
-
-    if [[ "$SEL" =~ ^[0-9]+$ ]] && [ "$SEL" -ge 1 ] && [ "$SEL" -le "${#CLUSTERS[@]}" ]; then
-        IDX=$(( SEL - 1 ))
-        NAMESPACE=$(echo  "${CLUSTERS[$IDX]}" | awk '{print $1}')
-        CLUSTER_NAME=$(echo "${CLUSTERS[$IDX]}" | awk '{print $2}')
-        DETECTED_TYPE="${CLUSTER_TYPES[$IDX]}"
-
-        if [ "$DETECTED_TYPE" = "PGD4K" ]; then
-            VARIANT_CHOICE=3
-        else
-            echo ""
-            echo "Select Operator Variant for ${CLUSTER_NAME}:"
-            echo "  1) CNP  (Cloud Native Postgres - EDB)"
-            echo "  2) CNPG (CloudNativePG - Community)"
-            read -rp "Enter choice [1 or 2]: " VARIANT_CHOICE
-        fi
-    else
-        echo ""
-        read -rp "Enter the Namespace of the Cluster: " NAMESPACE
-        read -rp "Enter the Cluster Name: " CLUSTER_NAME
-        echo ""
-        echo "Select Operator Variant:"
-        echo "  1) CNP  (Cloud Native Postgres - EDB)"
-        echo "  2) CNPG (CloudNativePG - Community)"
-        echo "  3) PGD4K (EDB Postgres Distributed for Kubernetes)"
-        read -rp "Enter choice [1, 2, or 3]: " VARIANT_CHOICE
-    fi
-fi
-
 case "$VARIANT_CHOICE" in
     1) OP_CMD="cnp"  ;;
     2) OP_CMD="cnpg" ;;
     3) OP_CMD="cnp"; IS_PGD=true ;;
-    *) echo "Invalid choice, defaulting to cnpg."; OP_CMD="cnpg" ;;
+    *) echo "Invalid choice, defaulting to CNPG."; OP_CMD="cnpg" ;;
 esac
 
+VARIANT_LABEL="CNP"
+[ "$OP_CMD" = "cnpg" ] && VARIANT_LABEL="CNPG"
+[ "$IS_PGD" = true ] && VARIANT_LABEL="PGD4K"
+VARIANT_LOWER=$(lower "$VARIANT_LABEL")
+
 echo ""
-echo "Target: namespace=${NAMESPACE}  cluster=${CLUSTER_NAME}  variant=${OP_CMD}$([ "$IS_PGD" = true ] && echo ' (PGD4K)')"
+echo "=== Discovering ${VARIANT_LABEL} clusters in your Kubernetes context ==="
 echo ""
 
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-# 2. DIRECTORY SETUP
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ------------------------------------------------------------
+# 2. CLUSTER DISCOVERY & SCOPE SELECTION
+# ------------------------------------------------------------
+TARGETS=()   # each entry: "namespace|clustername"
 
+collect_lines ALL_CLUSTERS_RAW <<< "$(kubectl get cluster -A --no-headers \
+    -o custom-columns="NS:.metadata.namespace,NAME:.metadata.name" 2>/dev/null)"
+
+if [ "$IS_PGD" = true ]; then
+    # PGD4K: each BDR/PGD node is its own Cluster CR, so namespace and cluster
+    # name are NOT fixed to a single value. Default to discovering every
+    # Cluster CR so the whole PGD group gets collected in one pass.
+    if [ ${#ALL_CLUSTERS_RAW[@]} -eq 0 ]; then
+        echo "No clusters auto-detected. Falling back to manual entry."
+        read -rp "Enter the Namespace of the PGD cluster/node: " NAMESPACE
+        read -rp "Enter the Cluster (node) Name: " CLUSTER_NAME
+        TARGETS+=("${NAMESPACE}|${CLUSTER_NAME}")
+    else
+        echo "Detected PGD4K node clusters:"
+        for i in "${!ALL_CLUSTERS_RAW[@]}"; do
+            NS=$(awk '{print $1}' <<< "${ALL_CLUSTERS_RAW[$i]}")
+            NAME=$(awk '{print $2}' <<< "${ALL_CLUSTERS_RAW[$i]}")
+            printf "  %2d) %-30s (namespace: %s)\n" "$((i+1))" "$NAME" "$NS"
+        done
+        echo ""
+        echo "Select scope:"
+        echo "  a) Collect ALL PGD4K nodes/clusters listed above (recommended - needed for group-level BDR/Raft diagnostics)"
+        echo "  n) Collect only clusters within one specific namespace"
+        echo "  m) Enter a single namespace + cluster manually"
+        read -rp "Enter choice [a/n/m] (default a): " PGD_SCOPE
+
+        case "$PGD_SCOPE" in
+            n|N)
+                read -rp "Enter the namespace to scope to: " SCOPE_NS
+                for entry in "${ALL_CLUSTERS_RAW[@]}"; do
+                    NS=$(awk '{print $1}' <<< "$entry")
+                    NAME=$(awk '{print $2}' <<< "$entry")
+                    [ "$NS" = "$SCOPE_NS" ] && TARGETS+=("${NS}|${NAME}")
+                done
+                ;;
+            m|M)
+                read -rp "Enter the Namespace of the Cluster: " NAMESPACE
+                read -rp "Enter the Cluster Name: " CLUSTER_NAME
+                TARGETS+=("${NAMESPACE}|${CLUSTER_NAME}")
+                ;;
+            *)
+                for entry in "${ALL_CLUSTERS_RAW[@]}"; do
+                    NS=$(awk '{print $1}' <<< "$entry")
+                    NAME=$(awk '{print $2}' <<< "$entry")
+                    TARGETS+=("${NS}|${NAME}")
+                done
+                ;;
+        esac
+    fi
+else
+    # CNP / CNPG: ask whether to sweep every cluster in every namespace, or
+    # collect just one specific cluster.
+    echo "Select collection scope:"
+    echo "  1) All ${VARIANT_LABEL} clusters, across all namespaces"
+    echo "  2) A specific cluster (you provide namespace + cluster name)"
+    read -rp "Enter choice [1 or 2]: " SCOPE_CHOICE
+
+    if [ "$SCOPE_CHOICE" = "1" ]; then
+        if [ ${#ALL_CLUSTERS_RAW[@]} -eq 0 ]; then
+            echo "No clusters auto-detected in any namespace."
+        fi
+        for entry in "${ALL_CLUSTERS_RAW[@]}"; do
+            NS=$(awk '{print $1}' <<< "$entry")
+            NAME=$(awk '{print $2}' <<< "$entry")
+            TARGETS+=("${NS}|${NAME}")
+        done
+    else
+        if [ ${#ALL_CLUSTERS_RAW[@]} -gt 0 ]; then
+            echo "Detected clusters:"
+            for i in "${!ALL_CLUSTERS_RAW[@]}"; do
+                NS=$(awk '{print $1}' <<< "${ALL_CLUSTERS_RAW[$i]}")
+                NAME=$(awk '{print $2}' <<< "${ALL_CLUSTERS_RAW[$i]}")
+                printf "  %2d) %-30s (namespace: %s)\n" "$((i+1))" "$NAME" "$NS"
+            done
+            MANUAL_IDX=$(( ${#ALL_CLUSTERS_RAW[@]} + 1 ))
+            echo "  ${MANUAL_IDX}) Enter manually"
+            read -rp "Select cluster [1-${MANUAL_IDX}]: " SEL
+            if [[ "$SEL" =~ ^[0-9]+$ ]] && [ "$SEL" -ge 1 ] && [ "$SEL" -le "${#ALL_CLUSTERS_RAW[@]}" ]; then
+                IDX=$(( SEL - 1 ))
+                NAMESPACE=$(awk '{print $1}' <<< "${ALL_CLUSTERS_RAW[$IDX]}")
+                CLUSTER_NAME=$(awk '{print $2}' <<< "${ALL_CLUSTERS_RAW[$IDX]}")
+            else
+                read -rp "Enter the Namespace of the Cluster: " NAMESPACE
+                read -rp "Enter the Cluster Name: " CLUSTER_NAME
+            fi
+        else
+            read -rp "Enter the Namespace of the Cluster: " NAMESPACE
+            read -rp "Enter the Cluster Name: " CLUSTER_NAME
+        fi
+        TARGETS+=("${NAMESPACE}|${CLUSTER_NAME}")
+    fi
+fi
+
+if [ ${#TARGETS[@]} -eq 0 ]; then
+    echo "ERROR: No clusters selected for collection. Exiting."
+    exit 1
+fi
+
+echo ""
+echo "Targets to collect (${#TARGETS[@]}):"
+for t in "${TARGETS[@]}"; do
+    echo "  - namespace=${t%%|*}  cluster=${t##*|}"
+done
+echo ""
+
+# ------------------------------------------------------------
+# 3. DIRECTORY SETUP
+# ------------------------------------------------------------
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-MAIN_DIR="edb_diag_${CLUSTER_NAME}_${TIMESTAMP}"
+if [ ${#TARGETS[@]} -eq 1 ]; then
+    MAIN_DIR="edb_diag_${TARGETS[0]##*|}_${TIMESTAMP}"
+else
+    MAIN_DIR="edb_diag_${VARIANT_LOWER}_multi_${TIMESTAMP}"
+fi
 
-DIRS=(
-    "$MAIN_DIR/cluster_info"
-    "$MAIN_DIR/operator_info/logs"
-    "$MAIN_DIR/pods"
-    "$MAIN_DIR/storage"
-)
-[ "$IS_PGD" = true ] && DIRS+=("$MAIN_DIR/pgd_info")
+mkdir -p "$MAIN_DIR/operator_info/logs" "$MAIN_DIR/storage" "$MAIN_DIR/clusters"
+[ "$IS_PGD" = true ] && mkdir -p "$MAIN_DIR/pgd_group_info"
 
-mkdir -p "${DIRS[@]}"
-
-# Verify all directories were created
-for dir in "${DIRS[@]}"; do
+for dir in "$MAIN_DIR/operator_info/logs" "$MAIN_DIR/storage" "$MAIN_DIR/clusters"; do
     if [ ! -d "$dir" ]; then
-        echo "ERROR: Failed to create directory: $dir â check permissions and disk space."
+        echo "ERROR: Failed to create directory: $dir - check permissions and disk space."
         exit 1
     fi
 done
 
-echo "Starting comprehensive collection..."
+echo "Starting comprehensive collection into: ${MAIN_DIR}"
+echo ""
 
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-# 3. OPERATOR DISCOVERY & VERSIONING
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
+# ------------------------------------------------------------
+# 4. OPERATOR DISCOVERY & VERSIONING (cluster-wide, run once)
+# ------------------------------------------------------------
 find_op_pod() {
     kubectl get pods -A -l "$1" --no-headers 2>/dev/null | head -n 1
 }
+find_op_pod_by_name() {
+    kubectl get pods -A --no-headers 2>/dev/null | grep -i "$1" | head -n 1
+}
 
+echo "Collecting operator-level info..."
+
+OP_POD_INFO=""
 if [ "$IS_PGD" = true ]; then
     OP_POD_INFO=$(find_op_pod "app.kubernetes.io/name=edb-postgres-distributed-for-kubernetes")
     [ -z "$OP_POD_INFO" ] && OP_POD_INFO=$(find_op_pod "app.kubernetes.io/name=pgd-operator")
+    [ -z "$OP_POD_INFO" ] && OP_POD_INFO=$(find_op_pod_by_name "pgd-operator")
 else
     OP_POD_INFO=$(find_op_pod "app.kubernetes.io/name=cloud-native-postgresql")
     [ -z "$OP_POD_INFO" ] && OP_POD_INFO=$(find_op_pod "app.kubernetes.io/name=cloudnativepg")
+    [ -z "$OP_POD_INFO" ] && OP_POD_INFO=$(find_op_pod_by_name "cnpg-controller-manager")
 fi
 
 if [ -n "$OP_POD_INFO" ]; then
-    OP_NS=$(echo "$OP_POD_INFO"      | awk '{print $1}')
-    OP_POD_NAME=$(echo "$OP_POD_INFO" | awk '{print $2}')
+    OP_NS=$(awk '{print $1}' <<< "$OP_POD_INFO")
+    OP_POD_NAME=$(awk '{print $2}' <<< "$OP_POD_INFO")
     echo "  Found operator pod: ${OP_POD_NAME} (ns: ${OP_NS})"
 
     kubectl get pod "$OP_POD_NAME" -n "$OP_NS" \
@@ -182,155 +246,256 @@ if [ -n "$OP_POD_INFO" ]; then
     kubectl logs "$OP_POD_NAME" -n "$OP_NS" --previous \
         > "$MAIN_DIR/operator_info/logs/operator_previous.log" 2>/dev/null || true
 else
-    echo "  WARNING: Operator pod not found â skipping operator-level collection."
+    echo "  WARNING: Operator pod not found - skipping operator-level collection."
 fi
 
-# Barman Cloud plugin
-BARMAN_POD_INFO=$(kubectl get pods -A --no-headers 2>/dev/null | grep "barman-cloud" | head -n 1 || true)
+# Operator RBAC - RBAC/SCC and OLM-vs-GitOps ClusterRole drift (a GitOps
+# snapshot of an OLM-owned ClusterRole reapplied to another cluster) has
+# been the actual root cause behind reconciliation-failure tickets that
+# initially looked like a pure PGD/BDR problem.
+if [ "$IS_PGD" = true ]; then
+    kubectl describe clusterrole pgd-operator-manager-role \
+        > "$MAIN_DIR/operator_info/operator_clusterrole.txt" 2>/dev/null || true
+else
+    kubectl describe clusterrole postgresql-operator-manager \
+        > "$MAIN_DIR/operator_info/operator_clusterrole.txt" 2>/dev/null || true
+fi
+kubectl get clusterrole --selector=olm.owner.kind=ClusterServiceVersion -o yaml \
+    > "$MAIN_DIR/operator_info/olm_owned_clusterroles.yaml" 2>/dev/null || true
+kubectl get clusterrolebinding -o yaml \
+    > "$MAIN_DIR/operator_info/clusterrolebindings.yaml" 2>/dev/null || true
+
+BARMAN_POD_INFO=$(find_op_pod_by_name "barman-cloud")
 if [ -n "$BARMAN_POD_INFO" ]; then
-    B_NS=$(echo "$BARMAN_POD_INFO"   | awk '{print $1}')
-    B_NAME=$(echo "$BARMAN_POD_INFO" | awk '{print $2}')
+    B_NS=$(awk '{print $1}' <<< "$BARMAN_POD_INFO")
+    B_NAME=$(awk '{print $2}' <<< "$BARMAN_POD_INFO")
     kubectl get pod "$B_NAME" -n "$B_NS" \
         -o jsonpath='{.spec.containers[0].image}' \
         > "$MAIN_DIR/operator_info/barman_plugin_version.txt" 2>/dev/null || true
 fi
 
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-# 4. CLUSTER-LEVEL DIAGNOSTICS
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+kubectl get pv > "$MAIN_DIR/storage/all_pv_list.txt" 2>/dev/null || true
 
-echo "Collecting cluster-level info..."
+# ------------------------------------------------------------
+# 5. PER-CLUSTER / PER-POD / PER-DATABASE COLLECTION
+# ------------------------------------------------------------
+FIRST_PGD_POD_NS=""
+FIRST_PGD_POD_NAME=""
 
-RESOURCE_TYPE="cluster"
-[ "$IS_PGD" = true ] && RESOURCE_TYPE="pgdgroup"
+collect_cluster() {
+    local NAMESPACE="$1"
+    local CLUSTER_NAME="$2"
+    local CDIR="$MAIN_DIR/clusters/${NAMESPACE}__${CLUSTER_NAME}"
+    mkdir -p "$CDIR/cluster_info" "$CDIR/pods"
 
-# Cleaned cluster YAML (strips noise fields for readability)
-if [ "$YQ_AVAILABLE" = true ]; then
-    kubectl get "$RESOURCE_TYPE" "$CLUSTER_NAME" -n "$NAMESPACE" -o yaml 2>/dev/null | \
-        yq 'del(.status,
-                .metadata.uid,
-                .metadata.selfLink,
-                .metadata.resourceVersion,
-                .metadata.creationTimestamp,
-                .metadata.generation,
-                .metadata.managedFields)' \
-        > "$MAIN_DIR/cluster_info/cluster_definition_clean.yaml" || true
-fi
+    echo "=== Collecting cluster: ${NAMESPACE}/${CLUSTER_NAME} ==="
 
-# Always keep the full YAML as well
-kubectl get "$RESOURCE_TYPE" "$CLUSTER_NAME" -n "$NAMESPACE" -o yaml \
-    > "$MAIN_DIR/cluster_info/cluster_definition_full.yaml" 2>/dev/null || true
+    # ---- Cluster-level diagnostics ----
+    if [ "$YQ_AVAILABLE" = true ]; then
+        kubectl get cluster "$CLUSTER_NAME" -n "$NAMESPACE" -o yaml 2>/dev/null | \
+            yq 'del(.status,
+                    .metadata.uid,
+                    .metadata.selfLink,
+                    .metadata.resourceVersion,
+                    .metadata.creationTimestamp,
+                    .metadata.generation,
+                    .metadata.managedFields)' \
+            > "$CDIR/cluster_info/cluster_definition_clean.yaml" 2>/dev/null || true
+    fi
 
-kubectl "$OP_CMD" status "$CLUSTER_NAME" -n "$NAMESPACE" \
-    > "$MAIN_DIR/cluster_info/cluster_status.txt" 2>/dev/null || true
+    kubectl get cluster "$CLUSTER_NAME" -n "$NAMESPACE" -o yaml \
+        > "$CDIR/cluster_info/cluster_definition_full.yaml" 2>/dev/null || true
 
-# Backups â full YAML detail plus plugin summary
-kubectl get backup -n "$NAMESPACE" -o yaml \
-    > "$MAIN_DIR/cluster_info/backups.yaml" 2>/dev/null || true
-kubectl "$OP_CMD" get backups "$CLUSTER_NAME" -n "$NAMESPACE" \
-    > "$MAIN_DIR/cluster_info/backups_summary.txt" 2>/dev/null || true
+    kubectl "$OP_CMD" status "$CLUSTER_NAME" -n "$NAMESPACE" \
+        > "$CDIR/cluster_info/cluster_status.txt" 2>/dev/null || true
 
-kubectl get events -n "$NAMESPACE" --sort-by='.lastTimestamp' \
-    > "$MAIN_DIR/cluster_info/namespace_events.txt" 2>/dev/null || true
+    kubectl describe cluster "$CLUSTER_NAME" -n "$NAMESPACE" \
+        > "$CDIR/cluster_info/cluster_describe.txt" 2>/dev/null || true
 
-kubectl get pvc -n "$NAMESPACE" \
-    > "$MAIN_DIR/storage/pvc_list.txt" 2>/dev/null || true
-kubectl get pv \
-    > "$MAIN_DIR/storage/all_pv_list.txt" 2>/dev/null || true
+    kubectl get backup -n "$NAMESPACE" -o yaml \
+        > "$CDIR/cluster_info/backups.yaml" 2>/dev/null || true
+    kubectl "$OP_CMD" get backups "$CLUSTER_NAME" -n "$NAMESPACE" \
+        > "$CDIR/cluster_info/backups_summary.txt" 2>/dev/null || true
 
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-# 5. PGD4K-SPECIFIC DIAGNOSTICS
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    # ScheduledBackups and their controller Jobs - a stuck ScheduledBackup
+    # (reconciliation loop, "already exists" errors on the target Backup
+    # name) or a hung backup Job has been the root cause in real PGD4K cases.
+    kubectl get scheduledbackup -n "$NAMESPACE" -o yaml \
+        > "$CDIR/cluster_info/scheduledbackups.yaml" 2>/dev/null || true
+    kubectl get jobs -n "$NAMESPACE" -o wide \
+        > "$CDIR/cluster_info/jobs.txt" 2>/dev/null || true
 
-if [ "$IS_PGD" = true ]; then
-    echo "Collecting PGD-specific diagnostics..."
+    # PGDGroupCleanup objects - completed/stuck cleanups are frequently
+    # mistaken for (or actually are) the trigger behind a later outage.
+    kubectl get pgdgroupcleanups -n "$NAMESPACE" -o yaml \
+        > "$CDIR/cluster_info/pgdgroupcleanups.yaml" 2>/dev/null || true
 
-    kubectl get pgdgroups -n "$NAMESPACE" -o yaml \
-        > "$MAIN_DIR/pgd_info/pgdgroups.yaml" 2>/dev/null || true
+    kubectl get events -n "$NAMESPACE" --sort-by='.lastTimestamp' \
+        > "$CDIR/cluster_info/namespace_events.txt" 2>/dev/null || true
 
-    kubectl cnp pgd show-nodes "$CLUSTER_NAME" -n "$NAMESPACE" \
-        > "$MAIN_DIR/pgd_info/show_nodes.txt" 2>/dev/null || true
+    kubectl get pvc -n "$NAMESPACE" \
+        > "$CDIR/cluster_info/pvc_list.txt" 2>/dev/null || true
 
-    kubectl cnp pgd show-group "$CLUSTER_NAME" -n "$NAMESPACE" \
-        > "$MAIN_DIR/pgd_info/show_group.txt" 2>/dev/null || true
+    # Secret *names/types* only (never contents) - to catch missing
+    # image-pull secrets (FailedToRetrieveImagePullSecret) without touching
+    # credential data.
+    kubectl get secrets -n "$NAMESPACE" \
+        > "$CDIR/cluster_info/secrets_list.txt" 2>/dev/null || true
 
-    kubectl cnp pgd show-replslots "$CLUSTER_NAME" -n "$NAMESPACE" \
-        > "$MAIN_DIR/pgd_info/show_replslots.txt" 2>/dev/null || true
-fi
+    # Namespace definition - carries OpenShift SCC/UID-range annotations
+    # (openshift.io/sa.scc.uid-range, supplemental-groups) that matter when
+    # diagnosing "chmod ... operation not permitted" PGDATA ownership issues.
+    kubectl get namespace "$NAMESPACE" -o yaml \
+        > "$CDIR/cluster_info/namespace_definition.yaml" 2>/dev/null || true
 
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-# 6. POD & DATABASE DIAGNOSTICS
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    # ---- Pod discovery ----
+    local PODS
+    PODS=$(kubectl get pods -n "$NAMESPACE" -l "cnpg.io/cluster=$CLUSTER_NAME" \
+        -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
 
-PODS=$(kubectl get pods -n "$NAMESPACE" -l "cnpg.io/cluster=$CLUSTER_NAME" \
-    -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || true)
+    if [ -z "$PODS" ]; then
+        PODS=$(kubectl get pods -n "$NAMESPACE" --no-headers \
+            -o custom-columns=":metadata.name" 2>/dev/null | grep "^${CLUSTER_NAME}-" | tr '\n' ' ')
+    fi
 
-# Fallback: match pods by name prefix
-if [ -z "$PODS" ]; then
-    PODS=$(kubectl get pods -n "$NAMESPACE" --no-headers \
-        -o custom-columns=":metadata.name" 2>/dev/null | grep "^${CLUSTER_NAME}-" | tr '\n' ' ' || true)
-fi
+    if [ -z "$PODS" ]; then
+        echo "  WARNING: No pods found for cluster '${CLUSTER_NAME}' in namespace '${NAMESPACE}'."
+        return
+    fi
 
-if [ -z "$PODS" ]; then
-    echo "WARNING: No pods found for cluster '${CLUSTER_NAME}' in namespace '${NAMESPACE}'."
-fi
+    for POD in $PODS; do
+        echo "  --- Processing Pod: $POD ---"
+        local POD_DIR="$CDIR/pods/$POD"
+        mkdir -p "$POD_DIR/postgresql"
 
-for POD in $PODS; do
-    echo "--- Processing Pod: $POD ---"
-    POD_DIR="$MAIN_DIR/pods/$POD"
-    mkdir -p "$POD_DIR/postgresql"
+        kubectl describe pod "$POD" -n "$NAMESPACE" \
+            > "$POD_DIR/describe_result.txt" 2>/dev/null || true
 
-    run_pod_sql() {
-        kubectl exec -n "$NAMESPACE" "$POD" -c postgres -- \
-            psql -U postgres -c "$1" > "$POD_DIR/postgresql/$2" 2>/dev/null || true
-    }
+        # OpenShift SCC + assigned UID (empty/no-op on vanilla Kubernetes) -
+        # needed to confirm a pod's assigned UID against the PV's on-disk
+        # PGDATA ownership when diagnosing "chmod: operation not permitted".
+        kubectl get pod "$POD" -n "$NAMESPACE" \
+            -o jsonpath='{.metadata.annotations.openshift\.io/scc}{"\n"}{.spec.securityContext}{"\n"}' \
+            > "$POD_DIR/scc_and_security_context.txt" 2>/dev/null || true
 
-    run_pod_sql "SELECT version();"                                                "db_version.out"
-    run_pod_sql "SHOW ALL;"                                                        "show_all.out"
-    run_pod_sql "SELECT * FROM pg_stat_replication;"                               "replication.out"
-    run_pod_sql "SELECT * FROM pg_replication_slots;"                              "replication_slots.out"
-    run_pod_sql "SELECT * FROM pg_stat_bgwriter;"                                  "bgwriter.out"
-    run_pod_sql "SELECT * FROM pg_stat_archiver;"                                  "archiver.out"
+        # Logs for every container/init container on the pod - not just
+        # "postgres" - so PGD4K sidecars aren't silently skipped.
+        local CONTAINERS
+        CONTAINERS=$(kubectl get pod "$POD" -n "$NAMESPACE" \
+            -o jsonpath='{range .spec.containers[*]}{.name}{" "}{end}{range .spec.initContainers[*]}{.name}{" "}{end}' \
+            2>/dev/null)
+        for C in $CONTAINERS; do
+            kubectl logs "$POD" -n "$NAMESPACE" -c "$C" \
+                > "$POD_DIR/postgresql/${C}.log" 2>/dev/null || true
+            kubectl logs "$POD" -n "$NAMESPACE" -c "$C" --previous \
+                > "$POD_DIR/postgresql/${C}_previous.log" 2>/dev/null || true
+        done
 
-    QUERY_ACT="SELECT COALESCE(state,'internal/background') AS state, count(*) \
+        run_pod_sql() {
+            kubectl exec -n "$NAMESPACE" "$POD" -c postgres -- \
+                psql -U postgres -c "$1" > "$POD_DIR/postgresql/$2" 2>/dev/null || true
+        }
+
+        run_pod_sql "SELECT version();"                  "db_version.out"
+        run_pod_sql "SHOW ALL;"                           "show_all.out"
+        run_pod_sql "SELECT * FROM pg_stat_replication;"  "replication.out"
+        run_pod_sql "SELECT * FROM pg_stat_bgwriter;"     "bgwriter.out"
+        run_pod_sql "SELECT * FROM pg_stat_archiver;"     "archiver.out"
+        run_pod_sql "SELECT * FROM pg_stat_subscription;" "pg_stat_subscription.out"
+
+        # Slot detail + the WAL each one is anchoring. inactive_since resets
+        # easily and is not reliable on its own for how long a slot has been
+        # stuck - restart_lsn lag (cross-checked against bdr.group_replslots_details
+        # below on PGD) is the number to trust.
+        run_pod_sql "SELECT slot_name, slot_type, plugin, database, active, \
+inactive_since, restart_lsn, confirmed_flush_lsn, \
+pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)) AS retained_wal \
+FROM pg_replication_slots;" "replication_slots.out"
+
+        # Role OIDs - on a multi-master BDR/PGD group, the same role name
+        # existing with a DIFFERENT oid on each node means it was created
+        # locally on each node instead of replicated via one DDL statement.
+        # That mismatch is exactly what causes "role already exists" /
+        # "writer with pid ... has died" replay loops after a reconnect.
+        run_pod_sql "SELECT rolname, oid FROM pg_roles ORDER BY rolname;" "pg_roles.out"
+
+        QUERY_ACT="SELECT COALESCE(state,'internal/background') AS state, count(*) \
 FROM pg_stat_activity GROUP BY 1 \
 UNION ALL SELECT 'Total', count(*) FROM pg_stat_activity \
 ORDER BY (state='Total') ASC, count DESC;"
-    run_pod_sql "$QUERY_ACT" "activity_counts.out"
+        run_pod_sql "$QUERY_ACT" "activity_counts.out"
 
-    # Per-database deep dive
-    DB_LIST=$(kubectl exec -n "$NAMESPACE" "$POD" -c postgres -- \
-        psql -U postgres -t -c \
-        "SELECT datname FROM pg_database WHERE datallowconn AND datname NOT LIKE 'template%';" \
-        2>/dev/null | xargs || true)
+        # ---- PGD4K / BDR per-node diagnostics ----
+        # Schema names/views below follow EDB Postgres Distributed's `bdr.*`
+        # monitoring catalog. Adjust the schema name here if a future PGD
+        # version renames it (e.g. to `spock.*`).
+        if [ "$IS_PGD" = true ]; then
+            if [ -z "$FIRST_PGD_POD_NAME" ]; then
+                FIRST_PGD_POD_NS="$NAMESPACE"
+                FIRST_PGD_POD_NAME="$POD"
+            fi
 
-    for DB in $DB_LIST; do
-        echo "   -> Collecting from Database: $DB"
-        DB_SUBDIR="$POD_DIR/postgresql/db_${DB}"
-        mkdir -p "$DB_SUBDIR"
+            run_pod_sql "SELECT * FROM bdr.node_summary;"            "bdr_node_summary.out"
+            run_pod_sql "SELECT * FROM bdr.node_slots;"              "bdr_node_slots.out"
+            run_pod_sql "SELECT * FROM bdr.worker_errors ORDER BY error_time DESC;" \
+                                                                      "bdr_worker_errors.out"
+            run_pod_sql "SELECT * FROM bdr.subscription_summary;"    "bdr_subscription_summary.out"
+            run_pod_sql "SELECT * FROM bdr.group_versions_details;"  "bdr_group_versions_details.out"
+            run_pod_sql "SELECT * FROM bdr.group_raft_details;"      "bdr_group_raft_details.out"
+            run_pod_sql "SELECT * FROM bdr.group_replslots_details;" "bdr_group_replslots_details.out"
+            run_pod_sql "SELECT * FROM bdr.event_history WHERE event_type = 'write_leader' \
+ORDER BY event_time DESC LIMIT 200;"                                 "bdr_write_leader_history.out"
 
-        run_db_sql() {
+            # bdr.subscription (per-subscription status, e.g. "down") is the
+            # real signal on witness nodes - pg_stat_subscription is always
+            # empty there since PGD doesn't use native logical subscriptions.
+            run_pod_sql "SELECT * FROM bdr.subscription;"            "bdr_subscription.out"
+
+            # Has shown *different* rows depending on which node you query -
+            # capture it per-pod, not just once for the group, so that
+            # inconsistency is visible rather than hidden behind one sample.
+            run_pod_sql "SELECT * FROM bdr.proxy_config_summary ORDER BY proxy_name;" \
+                                                                       "bdr_proxy_config_summary.out"
+
+            # Native CLI, per-node view (complements the one-shot group CLI
+            # calls in section 6 below).
             kubectl exec -n "$NAMESPACE" "$POD" -c postgres -- \
-                psql -U postgres -d "$DB" -c "$1" > "$DB_SUBDIR/$2" 2>/dev/null || true
-        }
+                pgd replication show --slots > "$POD_DIR/postgresql/pgd_replication_slots.out" 2>/dev/null || true
+        fi
 
-        run_db_sql "SELECT * FROM pg_available_extensions WHERE installed_version IS NOT NULL;" \
-            "extensions.out"
-        run_db_sql "SELECT * FROM pg_stat_user_tables;"                              "pg_stat_user_tables.out"
-        run_db_sql "SELECT relname, n_live_tup, n_dead_tup FROM pg_stat_user_tables ORDER BY 3 DESC;" \
-            "table_tuples.out"
-        run_db_sql "SELECT schemaname, relname, \
+        # Per-database deep dive
+        local DB_LIST
+        DB_LIST=$(kubectl exec -n "$NAMESPACE" "$POD" -c postgres -- \
+            psql -U postgres -t -c \
+            "SELECT datname FROM pg_database WHERE datallowconn AND datname NOT LIKE 'template%';" \
+            2>/dev/null | xargs)
+
+        for DB in $DB_LIST; do
+            echo "     -> Collecting from Database: $DB"
+            local DB_SUBDIR="$POD_DIR/postgresql/db_${DB}"
+            mkdir -p "$DB_SUBDIR"
+
+            run_db_sql() {
+                kubectl exec -n "$NAMESPACE" "$POD" -c postgres -- \
+                    psql -U postgres -d "$DB" -c "$1" > "$DB_SUBDIR/$2" 2>/dev/null || true
+            }
+
+            run_db_sql "SELECT * FROM pg_available_extensions WHERE installed_version IS NOT NULL;" \
+                "extensions.out"
+            run_db_sql "SELECT * FROM pg_stat_user_tables;" "pg_stat_user_tables.out"
+            run_db_sql "SELECT relname, n_live_tup, n_dead_tup FROM pg_stat_user_tables ORDER BY 3 DESC;" \
+                "table_tuples.out"
+            run_db_sql "SELECT schemaname, relname, \
 pg_size_pretty(pg_relation_size(relid)) AS actual_size, \
 n_dead_tup, last_autovacuum \
-FROM pg_stat_all_tables ORDER BY n_dead_tup DESC;"                                   "database_bloat.out"
-        run_db_sql "SELECT schemaname, relname, indexrelname, \
+FROM pg_stat_all_tables ORDER BY n_dead_tup DESC;" "database_bloat.out"
+            run_db_sql "SELECT schemaname, relname, indexrelname, \
 pg_size_pretty(pg_relation_size(indexrelid)) AS index_size, idx_scan \
-FROM pg_stat_user_indexes ORDER BY pg_relation_size(indexrelid) DESC;"               "index_bloat.out"
-        run_db_sql "SELECT * FROM pg_locks;"                                         "pg_locks.out"
-        run_db_sql "SELECT * FROM pg_stat_activity;"                                 "pg_stat_activity.out"
+FROM pg_stat_user_indexes ORDER BY pg_relation_size(indexrelid) DESC;" "index_bloat.out"
+            run_db_sql "SELECT * FROM pg_locks;" "pg_locks.out"
+            run_db_sql "SELECT * FROM pg_stat_activity;" "pg_stat_activity.out"
 
-        # Detailed blocking tree
-        BLOCK_Q1="SELECT \
+            BLOCK_Q1="SELECT \
   blocked_locks.pid               AS blocked_pid, \
   blocked_activity.usename        AS blocked_user, \
   now() - blocked_activity.query_start AS blocked_duration, \
@@ -355,27 +520,67 @@ JOIN pg_catalog.pg_locks AS blocking_locks \
  AND blocking_locks.pid != blocked_locks.pid \
 JOIN pg_catalog.pg_stat_activity AS blocking_activity ON blocking_activity.pid = blocking_locks.pid \
 WHERE NOT blocked_locks.granted;"
-        run_db_sql "$BLOCK_Q1" "blocking_analysis_detailed.out"
+            run_db_sql "$BLOCK_Q1" "blocking_analysis_detailed.out"
 
-        BLOCK_Q2="SELECT activity.pid, activity.usename, activity.query, \
+            BLOCK_Q2="SELECT activity.pid, activity.usename, activity.query, \
   blocking.pid AS blocking_id, blocking.query AS blocking_query \
 FROM pg_stat_activity AS activity \
 JOIN pg_stat_activity AS blocking ON blocking.pid = ANY(pg_blocking_pids(activity.pid));"
-        run_db_sql "$BLOCK_Q2" "blocking_summary.out"
+            run_db_sql "$BLOCK_Q2" "blocking_summary.out"
+        done
     done
+}
 
-    kubectl describe pod "$POD" -n "$NAMESPACE" \
-        > "$POD_DIR/describe_result.txt" 2>/dev/null || true
-    kubectl logs "$POD" -n "$NAMESPACE" -c postgres \
-        > "$POD_DIR/postgresql/postgres.log" 2>/dev/null || true
-    kubectl logs "$POD" -n "$NAMESPACE" -c postgres --previous \
-        > "$POD_DIR/postgresql/postgres_previous.log" 2>/dev/null || true
+for T in "${TARGETS[@]}"; do
+    collect_cluster "${T%%|*}" "${T##*|}"
 done
 
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-# 7. PACKAGING
-# âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+# ------------------------------------------------------------
+# 6. PGD/BDR GROUP-WIDE DIAGNOSTICS (once, via one representative node)
+# ------------------------------------------------------------
+if [ "$IS_PGD" = true ] && [ -n "$FIRST_PGD_POD_NAME" ]; then
+    echo ""
+    echo "=== Collecting PGD/BDR group-wide diagnostics (via ${FIRST_PGD_POD_NAME}) ==="
+    GDIR="$MAIN_DIR/pgd_group_info"
 
+    # Native `pgd` CLI - opportunistic. It ships inside the postgresql-pgd
+    # image on most PGD4K builds, but needs a resolvable DSN/local auth to
+    # run non-interactively. If these files come back empty, re-run manually
+    # with an explicit --dsn against one of the pods.
+    for SUBCMD in check-health show-groups show-nodes show-raft; do
+        OUTFILE="pgd_$(echo "$SUBCMD" | tr '-' '_').out"
+        kubectl exec -n "$FIRST_PGD_POD_NS" "$FIRST_PGD_POD_NAME" -c postgres -- \
+            pgd "$SUBCMD" > "$GDIR/$OUTFILE" 2>/dev/null || true
+    done
+
+    kubectl get pgdgroups -A -o yaml > "$GDIR/pgdgroups.yaml" 2>/dev/null || true
+    kubectl get pgdgroupcleanups -A -o yaml > "$GDIR/pgdgroupcleanups.yaml" 2>/dev/null || true
+
+    # PGD Proxy is a separate component/Deployment from the data-node pods
+    # collected in section 5 above - it needs its own describe+logs, not
+    # just the connection routing visible from bdr.proxy_config_summary.
+    echo "  Collecting PGD Proxy pod diagnostics..."
+    mkdir -p "$GDIR/proxy_pods"
+    PROXY_PODS_RAW=$(kubectl get pods -A --no-headers 2>/dev/null | grep -i -- '-proxy-' )
+    if [ -n "$PROXY_PODS_RAW" ]; then
+        while IFS= read -r line; do
+            [ -z "${line// /}" ] && continue
+            P_NS=$(awk '{print $1}' <<< "$line")
+            P_NAME=$(awk '{print $2}' <<< "$line")
+            PDIR="$GDIR/proxy_pods/${P_NS}__${P_NAME}"
+            mkdir -p "$PDIR"
+            kubectl describe pod "$P_NAME" -n "$P_NS" > "$PDIR/describe_result.txt" 2>/dev/null || true
+            kubectl logs "$P_NAME" -n "$P_NS" > "$PDIR/proxy.log" 2>/dev/null || true
+            kubectl logs "$P_NAME" -n "$P_NS" --previous > "$PDIR/proxy_previous.log" 2>/dev/null || true
+        done <<< "$PROXY_PODS_RAW"
+    else
+        echo "  WARNING: No PGD Proxy pods found (label/name pattern '-proxy-')."
+    fi
+fi
+
+# ------------------------------------------------------------
+# 7. PACKAGING
+# ------------------------------------------------------------
 echo "--------------------------------------------------------"
 tar -czf "${MAIN_DIR}.tar.gz" "$MAIN_DIR"
 rm -rf "$MAIN_DIR"
