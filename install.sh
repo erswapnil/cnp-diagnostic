@@ -21,17 +21,28 @@ mkdir -p "$INSTALL_PATH"
 
 echo "Installing $BINARY from $OWNER/$REPO..."
 
-# 1. Download the tool (Ensure the file on GitHub is named kubectl-edbdiag)
-#    A cache-busting query string is required here: raw.githubusercontent.com
-#    (Fastly) can serve a stale cached copy of this exact URL for a long time
-#    after a push, so every install/update must use a unique URL.
-#
-#    --http1.1 is required on networks behind an SSL-inspecting proxy (e.g.
-#    Netskope), which can corrupt or hang HTTP/2 connections to GitHub with
-#    "Error in the HTTP2 framing layer" - HTTP/1.1 avoids that entirely.
-#    --max-time caps the download at 30s so a broken network fails fast with
-#    a clear error instead of hanging forever with no output.
-curl --http1.1 --max-time 30 --retry 2 -sSfL "https://raw.githubusercontent.com/$OWNER/$REPO/main/$BINARY?$(date +%s)" -o "$BINARY"
+# 1. Fetch the tool via `git clone` rather than curl-ing
+#    raw.githubusercontent.com directly. Some corporate SSL-inspecting
+#    proxies (e.g. Netskope) block or silently hang on direct
+#    raw.githubusercontent.com requests - with or without HTTP/2 - while
+#    git's smart-HTTP protocol against github.com itself goes through fine.
+#    --depth 1 keeps this fast and avoids pulling full history.
+if ! command -v git >/dev/null 2>&1; then
+    echo "git is required to install this plugin. Please install git and re-run." >&2
+    exit 1
+fi
+
+TMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TMP_DIR"' EXIT
+
+git clone --depth 1 --quiet "https://github.com/$OWNER/$REPO.git" "$TMP_DIR/$REPO"
+
+if [ ! -f "$TMP_DIR/$REPO/$BINARY" ]; then
+    echo "Could not find $BINARY in the cloned repository." >&2
+    exit 1
+fi
+
+cp "$TMP_DIR/$REPO/$BINARY" "./$BINARY"
 
 # 2. Make it executable
 chmod +x "$BINARY"
