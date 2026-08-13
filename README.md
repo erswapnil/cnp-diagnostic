@@ -61,9 +61,9 @@ The tool generates a comprehensive `.tar.gz` package including:
 $ kubectl-edbdiag
 Detected OpenShift context - using 'oc' for all cluster commands.
 Select Operator Variant:
-  1) CNP   (EDB Postgres for Kubernetes)
-  2) CNPG  (CloudNativePG - Community)
-  3) PGD4K (EDB Postgres Distributed for Kubernetes)
+  1) EDB Postgres® AI for CloudNativePG™ Cluster (CNP)
+  2) CloudNativePG™ (CNPG)
+  3) EDB Postgres® AI for CloudNativePG™ Global Cluster (PGD4K)
   q) Quit
 Enter choice [1-3, or q to quit]: 1
 
@@ -106,9 +106,9 @@ For PGD4K, the flow is the same up through variant selection, then instead of as
 $ kubectl-edbdiag
 Detected OpenShift context - using 'oc' for all cluster commands.
 Select Operator Variant:
-  1) CNP   (EDB Postgres for Kubernetes)
-  2) CNPG  (CloudNativePG - Community)
-  3) PGD4K (EDB Postgres Distributed for Kubernetes)
+  1) EDB Postgres® AI for CloudNativePG™ Cluster (CNP)
+  2) CloudNativePG™ (CNPG)
+  3) EDB Postgres® AI for CloudNativePG™ Global Cluster (PGD4K)
   q) Quit
 Enter choice [1-3, or q to quit]: 3
 
@@ -214,7 +214,7 @@ The tool organizes results by cluster, pod, and database for easy troubleshootin
 │           │   └── scc_and_security_context.txt
 │           ├── postgresql-advanced-cluster-2
 │           │
-│           └── postgresql-advanced-cluster-3
+│           └── postgresql-advanced-cluster-4
 │
 ├── operator_info
 │   ├── barman_plugin_version.txt
