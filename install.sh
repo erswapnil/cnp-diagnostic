@@ -11,7 +11,10 @@ INSTALL_PATH="/usr/local/bin"
 echo "Installing $BINARY from $OWNER/$REPO..."
 
 # 1. Download the tool (Ensure the file on GitHub is named kubectl-edbdiag)
-curl -sSfL "https://raw.githubusercontent.com/$OWNER/$REPO/main/$BINARY" -o "$BINARY"
+#    A cache-busting query string is required here: raw.githubusercontent.com
+#    (Fastly) can serve a stale cached copy of this exact URL for a long time
+#    after a push, so every install/update must use a unique URL.
+curl -sSfL "https://raw.githubusercontent.com/$OWNER/$REPO/main/$BINARY?$(date +%s)" -o "$BINARY"
 
 # 2. Make it executable
 chmod +x "$BINARY"
