@@ -14,6 +14,20 @@ BINARY="kubectl-edbdiag"
 # output and no visible prompt. To avoid that entirely, this script never
 # calls sudo. It installs into the current user's own bin directory instead
 # of a system path that requires root.
+#
+# Guard against being run with sudo anyway (e.g. out of habit from an old
+# README/browser-history command): if invoked as root, `whoami` resolves to
+# "root" and everything below would silently install into /var/root instead
+# of the real user's home - invisible to that user's own shell afterwards.
+# Refuse early with a clear message instead of failing confusingly later.
+if [ "$(id -u)" = "0" ]; then
+    echo "ERROR: Do not run this installer with sudo." >&2
+    echo "       It installs into your own user directory (~/.local/bin) and needs" >&2
+    echo "       no elevated privileges. Re-run it as your normal user, e.g.:" >&2
+    echo "         curl -sSfL https://github.com/$OWNER/$REPO/raw/main/install.sh | sh" >&2
+    exit 1
+fi
+
 TARGET_USER="$(whoami)"
 TARGET_HOME=$(eval echo "~${TARGET_USER}")
 INSTALL_PATH="${TARGET_HOME}/.local/bin"
@@ -42,13 +56,18 @@ if [ ! -f "$TMP_DIR/$REPO/$BINARY" ]; then
     exit 1
 fi
 
-cp "$TMP_DIR/$REPO/$BINARY" "./$BINARY"
+# Stay entirely inside $TMP_DIR for this - never touch a file named
+# "$BINARY" in the current working directory. If this script is run from
+# inside a clone of this same repo (which already has a tracked file with
+# this exact name), copying/moving through "./$BINARY" would overwrite and
+# then relocate that tracked file out of the repo entirely.
+cp "$TMP_DIR/$REPO/$BINARY" "$TMP_DIR/$BINARY"
 
 # 2. Make it executable
-chmod +x "$BINARY"
+chmod +x "$TMP_DIR/$BINARY"
 
 # 3. Move into the user's own bin directory - no sudo, no elevation prompt.
-mv "$BINARY" "$INSTALL_PATH/"
+mv "$TMP_DIR/$BINARY" "$INSTALL_PATH/"
 
 # 4. Make sure $INSTALL_PATH is actually on PATH so both `kubectl edbdiag`
 #    (plugin form) and a bare `kubectl-edbdiag` (direct form) work without
