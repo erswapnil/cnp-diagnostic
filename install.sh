@@ -25,7 +25,13 @@ echo "Installing $BINARY from $OWNER/$REPO..."
 #    A cache-busting query string is required here: raw.githubusercontent.com
 #    (Fastly) can serve a stale cached copy of this exact URL for a long time
 #    after a push, so every install/update must use a unique URL.
-curl -sSfL "https://raw.githubusercontent.com/$OWNER/$REPO/main/$BINARY?$(date +%s)" -o "$BINARY"
+#
+#    --http1.1 is required on networks behind an SSL-inspecting proxy (e.g.
+#    Netskope), which can corrupt or hang HTTP/2 connections to GitHub with
+#    "Error in the HTTP2 framing layer" - HTTP/1.1 avoids that entirely.
+#    --max-time caps the download at 30s so a broken network fails fast with
+#    a clear error instead of hanging forever with no output.
+curl --http1.1 --max-time 30 --retry 2 -sSfL "https://raw.githubusercontent.com/$OWNER/$REPO/main/$BINARY?$(date +%s)" -o "$BINARY"
 
 # 2. Make it executable
 chmod +x "$BINARY"
