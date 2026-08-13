@@ -6,7 +6,18 @@ OWNER="erswapnil"
 REPO="kubectl-cnp-diagnostic"
 # This MUST start with kubectl- to be recognized as a plugin
 BINARY="kubectl-edbdiag"
-INSTALL_PATH="/usr/local/bin"
+
+# No-sudo by design: on many corporate-managed Macs, invoking `sudo` triggers
+# an MDM/endpoint-security elevation prompt (e.g. a GUI "Launch with elevated
+# privileges" dialog) that never surfaces properly through a piped
+# `curl | sudo sh` install, leaving the install permanently stuck with no
+# output and no visible prompt. To avoid that entirely, this script never
+# calls sudo. It installs into the current user's own bin directory instead
+# of a system path that requires root.
+TARGET_USER="$(whoami)"
+TARGET_HOME=$(eval echo "~${TARGET_USER}")
+INSTALL_PATH="${TARGET_HOME}/.local/bin"
+mkdir -p "$INSTALL_PATH"
 
 echo "Installing $BINARY from $OWNER/$REPO..."
 
@@ -19,22 +30,12 @@ curl -sSfL "https://raw.githubusercontent.com/$OWNER/$REPO/main/$BINARY?$(date +
 # 2. Make it executable
 chmod +x "$BINARY"
 
-# 3. Move to system path
-if [ -w "$INSTALL_PATH" ]; then
-    mv "$BINARY" "$INSTALL_PATH/"
-else
-    sudo mv "$BINARY" "$INSTALL_PATH/"
-fi
+# 3. Move into the user's own bin directory - no sudo, no elevation prompt.
+mv "$BINARY" "$INSTALL_PATH/"
 
 # 4. Make sure $INSTALL_PATH is actually on PATH so both `kubectl edbdiag`
 #    (plugin form) and a bare `kubectl-edbdiag` (direct form) work without
-#    typing the full /usr/local/bin path.
-#
-#    This script is typically run as `curl ... | sudo sh`, which means $HOME
-#    would resolve to root's home, not the real user's - so resolve the
-#    invoking user explicitly via $SUDO_USER when present.
-TARGET_USER="${SUDO_USER:-$(whoami)}"
-TARGET_HOME=$(eval echo "~${TARGET_USER}")
+#    typing the full path.
 
 case ":${PATH}:" in
     *":${INSTALL_PATH}:"*)
@@ -58,7 +59,6 @@ case ":${PATH}:" in
             : # already configured previously
         else
             echo "export PATH=\"${INSTALL_PATH}:\$PATH\"" >> "$SHELL_RC"
-            [ "$(id -u)" = "0" ] && [ -n "${SUDO_USER:-}" ] && chown "$SUDO_USER" "$SHELL_RC" 2>/dev/null || true
             echo "Added ${INSTALL_PATH} to PATH in ${SHELL_RC}."
             echo "Restart your terminal or run: source ${SHELL_RC}"
         fi
