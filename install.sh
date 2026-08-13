@@ -3,7 +3,7 @@ set -e
 
 # Repository Configuration
 OWNER="erswapnil"
-REPO="cnp-diagnostic"
+REPO="kubectl-cnp-diagnostic"
 # This MUST start with kubectl- to be recognized as a plugin
 BINARY="kubectl-edbdiag"
 INSTALL_PATH="/usr/local/bin"
