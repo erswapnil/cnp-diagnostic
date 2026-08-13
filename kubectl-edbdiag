@@ -121,9 +121,9 @@ save_all_pod_logs() {
 # 1. OPERATOR VARIANT SELECTION (always asked first now)
 # ------------------------------------------------------------
 echo "Select Operator Variant:"
-echo "  1) CNP   (EDB Postgres for Kubernetes)"
-echo "  2) CNPG  (CloudNativePG - Community)"
-echo "  3) PGD4K (EDB Postgres Distributed for Kubernetes)"
+echo "  1) EDB Postgres® AI for CloudNativePG™ Cluster (CNP)"
+echo "  2) CloudNativePG™ (CNPG)"
+echo "  3) EDB Postgres® AI for CloudNativePG™ Global Cluster (PGD4K)"
 echo "  q) Quit"
 read -rp "Enter choice [1-3, or q to quit]: " VARIANT_CHOICE
 check_quit "$VARIANT_CHOICE"
