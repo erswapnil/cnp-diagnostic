@@ -169,7 +169,7 @@ if [ "$IS_PGD" = true ]; then
     # Cluster CR so the whole PGD group gets collected in one pass.
     if [ ${#ALL_CLUSTERS_RAW[@]} -eq 0 ]; then
         echo "No clusters auto-detected. Falling back to manual entry."
-        read -rp "Enter the Namespace of the PGD cluster/node  (or q to quit): " NAMESPACE
+        read -rp "Enter the Namespace of the PGD cluster/node (or q to quit): " NAMESPACE
         check_quit "$NAMESPACE"
         read -rp "Enter the Cluster (node) Name (or q to quit): " CLUSTER_NAME
         check_quit "$CLUSTER_NAME"
@@ -283,7 +283,6 @@ echo ""
 # ------------------------------------------------------------
 # 3. DIRECTORY SETUP
 # ------------------------------------------------------------
-
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 if [ ${#TARGETS[@]} -eq 1 ]; then
     MAIN_DIR="edb_diag_${TARGETS[0]##*|}_${TIMESTAMP}"
@@ -347,4 +346,330 @@ else
     echo "  WARNING: Operator pod not found - skipping operator-level collection."
 fi
 
-# Operator RBAC - RBAC/SCC and OLM-vs-GitOps ClusterRole drift (¡„¥Ñ=ÁÌ(ŒÍ¹…ÁÍ¡½Ğ½˜…¸=14µ½İ¹•±ÕÍÑ•ÉI½±”É•…ÁÁ±¥•Ñ¼…¹½Ñ¡•È±ÕÍÑ•È¤¡…Ì(Œ‰••¸Ñ¡”…ÑÕ…°É½½Ğ…ÕÍ”‰•¡¥¹É•½¹¥±¥…Ñ¥½¸µ™…¥±ÕÉ”Ñ¥­•ÑÌÑ¡…Ğ(Œ¥¹¥Ñ¥…±±ä±½½­•±¥­”„ÁÕÉ”A½	HÁÉ½‰±•´¸)¥˜l€ˆ‘%M}Aˆ€ôÑÉÕ”tìÑ¡•¸(€€€€ˆ‘-5ˆ‘•ÍÉ¥‰”±ÕÍÑ•ÉÉ½±”Áµ½Á•É…Ñ½Èµµ…¹…•ÈµÉ½±”p(€€€€€€€€ø€ˆ‘5%9}%H½½Á•É…Ñ½É}¥¹™¼½½Á•É…Ñ½É}±ÕÍÑ•ÉÉ½±”¹ÑáĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”)•±Í”(€€€€ˆ‘-5ˆ‘•ÍÉ¥‰”±ÕÍÑ•ÉÉ½±”Á½ÍÑÉ•ÍÅ°µ½Á•É…Ñ½Èµµ…¹…•Èp(€€€€€€€€ø€ˆ‘5%9}%H½½Á•É…Ñ½É}¥¹™¼½½Á•É…Ñ½É}±ÕÍÑ•ÉÉ½±”¹ÑáĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”)™¤(ˆ‘-5ˆ•Ğ±ÕÍÑ•ÉÉ½±”€´µÍ•±•Ñ½Èõ½±´¹½İ¹•È¹­¥¹õ±ÕÍÑ•ÉM•ÉÙ¥•Y•ÉÍ¥½¸€µ¼å…µ°p(€€€€ø€ˆ‘5%9}%H½½Á•É…Ñ½É}¥¹™¼½½±µ}½İ¹•‘}±ÕÍÑ•ÉÉ½±•Ì¹å…µ°ˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”(ˆ‘-5ˆ•Ğ±ÕÍÑ•ÉÉ½±•‰¥¹‘¥¹œ€µ¼å…µ°p(€€€€ø€ˆ‘5%9}%H½½Á•É…Ñ½É}¥¹™¼½±ÕÍÑ•ÉÉ½±•‰¥¹‘¥¹Ì¹å…µ°ˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”()	I59}A=}%9<ô¡™¥¹‘}½Á}Á½‘}‰å}¹…µ”€‰‰…Éµ…¸µ±½Õˆ¤)¥˜l€µ¸€ˆ‘	I59}A=}%9<ˆtìÑ¡•¸(€€€	}9Lô¡…İ¬€íÁÉ¥¹Ğ€Åôœ€ğğğ€ˆ‘	I59}A=}%9<ˆ¤(€€€	}95ô¡…İ¬€íÁÉ¥¹Ğ€Éôœ€ğğğ€ˆ‘	I59}A=}%9<ˆ¤(€€€€ˆ‘-5ˆ•ĞÁ½€ˆ‘	}95ˆ€µ¸€ˆ‘	}9Lˆp(€€€€€€€€µ¼©Í½¹Á…Ñ ôì¹ÍÁ•Œ¹½¹Ñ…¥¹•ÉÍlÁt¹¥µ…•ôœp(€€€€€€€€ø€ˆ‘5%9}%H½½Á•É…Ñ½É}¥¹™¼½‰…Éµ…¹}Á±Õ¥¹}Ù•ÉÍ¥½¸¹ÑáĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”)™¤((ˆ‘-5ˆ•ĞÁØ€ø€ˆ‘5%9}%H½ÍÑ½É…”½…±±}ÁÙ}±¥ÍĞ¹ÑáĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”((Œ€´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´(Œ€Ô¸AHµ1UMQH€¼AHµA=€¼AHµQ	M=11Q%=8(Œ€´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´)%IMQ}A}A=}9Lôˆˆ)%IMQ}A}A=}95ôˆˆ()½±±•Ñ}±ÕÍÑ•È ¤ì(€€€±½…°95MAôˆÄˆ(€€€±½…°1UMQI}95ôˆÈˆ(€€€±½…°%Hôˆ‘5%9}%H½±ÕÍÑ•ÉÌ¼‘í95MAõ}|‘í1UMQI}95ôˆ(€€€µ­‘¥È€µÀ€ˆ‘%H½±ÕÍÑ•É}¥¹™¼ˆ€ˆ‘%H½Á½‘Ìˆ((€€€•¡¼€ˆôôô½±±•Ñ¥¹œ±ÕÍÑ•Èè€‘í95MAô¼‘í1UMQI}95ô€ôôôˆ((€€€€Œ€´´´´±ÕÍÑ•Èµ±•Ù•°‘¥…¹½ÍÑ¥Ì€´´´´(€€€¥˜l€ˆ‘eE}Y%1	1ˆ€ôÑÉÕ”tìÑ¡•¸(€€€€€€€€ˆ‘-5ˆ•Ğ±ÕÍÑ•È€ˆ‘1UMQI}95ˆ€µ¸€ˆ‘95MAˆ€µ¼å…µ°€Èø½‘•Ø½¹Õ±°ğp(€€€€€€€€€€€åÄ€‘•° ¹ÍÑ…ÑÕÌ°(€€€€€€€€€€€€€€€€€€€€¹µ•Ñ…‘…Ñ„¹Õ¥°(€€€€€€€€€€€€€€€€€€€€¹µ•Ñ…‘…Ñ„¹Í•±™1¥¹¬°(€€€€€€€€€€€€€€€€€€€€¹µ•Ñ…‘…Ñ„¹É•Í½ÕÉ•Y•ÉÍ¥½¸°(€€€€€€€€€€€€€€€€€€€€¹µ•Ñ…‘…Ñ„¹É•…Ñ¥½¹Q¥µ•ÍÑ…µÀ°(€€€€€€€€€€€€€€€€€€€€¹µ•Ñ…‘…Ñ„¹•¹•É…Ñ¥½¸°(€€€€€€€€€€€€€€€€€€€€¹µ•Ñ…‘…Ñ„¹µ…¹…•‘¥•±‘Ì¤œp(€€€€€€€€€€€€ø€ˆ‘%H½±ÕÍÑ•É}¥¹™¼½±ÕÍÑ•É}‘•™¥¹¥Ñ¥½¹}±•…¸¹å…µ°ˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”(€€€™¤((€€€€ˆ‘-5ˆ•Ğ±ÕÍÑ•È€ˆ‘1UMQI}95ˆ€µ¸€ˆ‘95MAˆ€µ¼å…µ°p(€€€€€€€€ø€ˆ‘%H½±ÕÍÑ•É}¥¹™¼½±ÕÍÑ•É}‘•™¥¹¥Ñ¥½¹}™Õ±°¹å…µ°ˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”((€€€€ˆ‘-5ˆ€ˆ‘=A}5ˆÍÑ…ÑÕÌ€ˆ‘1UMQI}95ˆ€µ¸€ˆ‘95MAˆp(€€€€€€€€ø€ˆ‘%H½±ÕÍÑ•É}¥¹™¼½±ÕÍÑ•É}ÍÑ…ÑÕÌ¹ÑáĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”((€€€€ˆ‘-5ˆ‘•ÍÉ¥‰”±ÕÍÑ•È€ˆ‘1UMQI}95ˆ€µ¸€ˆ‘95MAˆp(€€€€€€€€ø€ˆ‘%H½±ÕÍÑ•É}¥¹™¼½±ÕÍÑ•É}‘•ÍÉ¥‰”¹ÑáĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”((€€€€ˆ‘-5ˆ•Ğ‰…­ÕÀ€µ¸€ˆ‘95MAˆ€µ¼å…µ°p(€€€€€€€€ø€ˆ‘%H½±ÕÍÑ•É}¥¹™¼½‰…­ÕÁÌ¹å…µ°ˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”(€€€€ˆ‘-5ˆ€ˆ‘=A}5ˆ•Ğ‰…­ÕÁÌ€ˆ‘1UMQI}95ˆ€µ¸€ˆ‘95MAˆp(€€€€€€€€ø€ˆ‘%H½±ÕÍÑ•É}¥¹™¼½‰…­ÕÁÍ}ÍÕµµ…Éä¹ÑáĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”((€€€€ŒM¡•‘Õ±•‘	…­ÕÁÌ…¹Ñ¡•¥È½¹ÑÉ½±±•È)½‰Ì€´„ÍÑÕ¬M¡•‘Õ±•‘	…­ÕÀ(€€€€Œ€¡É•½¹¥±¥…Ñ¥½¸±½½À°€‰…±É•…‘ä•á¥ÍÑÌˆ•ÉÉ½ÉÌ½¸Ñ¡”Ñ…É•Ğ	…­ÕÀ(€€€€Œ¹…µ”¤½È„¡Õ¹œ‰…­ÕÀ)½ˆ¡…Ì‰••¸Ñ¡”É½½Ğ…ÕÍ”¥¸É•…°AÑ,…Í•Ì¸(€€€€ˆ‘-5ˆ•ĞÍ¡•‘Õ±•‘‰…­ÕÀ€µ¸€ˆ‘95MAˆ€µ¼å…µ°p(€€€€€€€€ø€ˆ‘%H½±ÕÍÑ•É}¥¹™¼½Í¡•‘Õ±•‘‰…­ÕÁÌ¹å…µ°ˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”(€€€€ˆ‘-5ˆ•Ğ©½‰Ì€µ¸€ˆ‘95MAˆ€µ¼İ¥‘”p(€€€€€€€€ø€ˆ‘%H½±ÕÍÑ•É}¥¹™¼½©½‰Ì¹ÑáĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”((€€€€ŒAÉ½ÕÁ±•…¹ÕÀ½‰©•ÑÌ€´½µÁ±•Ñ•½ÍÑÕ¬±•…¹ÕÁÌ…É”™É•ÅÕ•¹Ñ±ä(€€€€Œµ¥ÍÑ…­•¸™½È€¡½È…ÑÕ…±±ä…É”¤Ñ¡”ÑÉ¥•È‰•¡¥¹„±…Ñ•È½ÕÑ…”¸(€€€€ˆ‘-5ˆ•ĞÁ‘É½ÕÁ±•…¹ÕÁÌ€µ¸€ˆ‘95MAˆ€µ¼å…µ°p(€€€€€€€€ø€ˆ‘%H½±ÕÍÑ•É}¥¹™¼½Á‘É½ÕÁ±•…¹ÕÁÌ¹å…µ°ˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”((€€€€ˆ‘-5ˆ•Ğ•Ù•¹ÑÌ€µ¸€ˆ‘95MAˆ€´µÍ½ÉĞµ‰äôœ¹±…ÍÑQ¥µ•ÍÑ…µÀœp(€€€€€€€€ø€ˆ‘%H½±ÕÍÑ•É}¥¹™¼½¹…µ•ÍÁ…•}•Ù•¹ÑÌ¹ÑáĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”((€€€€ˆ‘-5ˆ•ĞÁÙŒ€µ¸€ˆ‘95MAˆp(€€€€€€€€ø€ˆ‘%H½±ÕÍÑ•É}¥¹™¼½ÁÙ}±¥ÍĞ¹ÑáĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”((€€€€ŒM•É•Ğ€©¹…µ•Ì½ÑåÁ•Ì¨½¹±ä€¡¹•Ù•È½¹Ñ•¹ÑÌ¤€´Ñ¼…Ñ µ¥ÍÍ¥¹œ(€€€€Œ¥µ…”µÁÕ±°Í•É•ÑÌ€¡…¥±•‘Q½I•ÑÉ¥•Ù•%µ…•AÕ±±M•É•Ğ¤İ¥Ñ¡½ÕĞÑ½Õ¡¥¹œ(€€€€ŒÉ•‘•¹Ñ¥…°‘…Ñ„¸(€€€€ˆ‘-5ˆ•ĞÍ•É•ÑÌ€µ¸€ˆ‘95MAˆp(€€€€€€€€ø€ˆ‘%H½±ÕÍÑ•É}¥¹™¼½Í•É•ÑÍ}±¥ÍĞ¹ÑáĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”((€€€€Œ9…µ•ÍÁ…”‘•™¥¹¥Ñ¥½¸€´…ÉÉ¥•Ì=Á•¹M¡¥™ĞM½U%µÉ…¹”…¹¹½Ñ…Ñ¥½¹Ì(€€€€Œ€¡½Á•¹Í¡¥™Ğ¹¥¼½Í„¹ÍŒ¹Õ¥µÉ…¹”°ÍÕÁÁ±•µ•¹Ñ…°µÉ½ÕÁÌ¤Ñ¡…Ğµ…ÑÑ•Èİ¡•¸(€€€€Œ‘¥…¹½Í¥¹œ€‰¡µ½€¸¸¸½Á•É…Ñ¥½¸¹½ĞÁ•Éµ¥ÑÑ•ˆAQ½İ¹•ÉÍ¡¥À¥ÍÍÕ•Ì¸(€€€€ˆ‘-5ˆ•Ğ¹…µ•ÍÁ…”€ˆ‘95MAˆ€µ¼å…µ°p(€€€€€€€€ø€ˆ‘%H½±ÕÍÑ•É}¥¹™¼½¹…µ•ÍÁ…•}‘•™¥¹¥Ñ¥½¸¹å…µ°ˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”((€€€€Œ€´´´´A½‘¥Í½Ù•Éä€´´´´(€€€±½…°A=L(€€€A=Lô ˆ‘-5ˆ•ĞÁ½‘Ì€µ¸€ˆ‘95MAˆ€µ°€‰¹Áœ¹¥¼½±ÕÍÑ•Èô‘1UMQI}95ˆp(€€€€€€€€µ¼©Í½¹Á…Ñ ôì¹¥Ñ•µÍl©t¹µ•Ñ…‘…Ñ„¹¹…µ•ôœ€Èø½‘•Ø½¹Õ±°¤((€€€¥˜l€µè€ˆ‘A=LˆtìÑ¡•¸(€€€€€€€A=Lô ˆ‘-5ˆ•ĞÁ½‘Ì€µ¸€ˆ‘95MAˆ€´µ¹¼µ¡•…‘•ÉÌp(€€€€€€€€€€€€µ¼ÕÍÑ½´µ½±Õµ¹Ìôˆéµ•Ñ…‘…Ñ„¹¹…µ”ˆ€Èø½‘•Ø½¹Õ±°ğÉ•À€‰x‘í1UMQI}95ô´ˆğÑÈ€q¸œ€œ€œ¤(€€€™¤((€€€¥˜l€µè€ˆ‘A=LˆtìÑ¡•¸(€€€€€€€•¡¼€ˆ€]I9%9è9¼Á½‘Ì™½Õ¹™½È±ÕÍÑ•È€œ‘í1UMQI}95ôœ¥¸¹…µ•ÍÁ…”€œ‘í95MAôœ¸ˆ(€€€€€€€É•ÑÕÉ¸(€€€™¤((€€€™½ÈA=¥¸€‘A=Lì‘¼(€€€€€€€•¡¼€ˆ€€´´´AÉ½•ÍÍ¥¹œA½è€‘A=€´´´ˆ(€€€€€€€±½…°A=}%Hôˆ‘%H½Á½‘Ì¼‘A=ˆ(€€€€€€€µ­‘¥È€µÀ€ˆ‘A=}%H½Á½ÍÑÉ•ÍÅ°ˆ((€€€€€€€€ˆ‘-5ˆ‘•ÍÉ¥‰”Á½€ˆ‘A=ˆ€µ¸€ˆ‘95MAˆp(€€€€€€€€€€€€ø€ˆ‘A=}%H½‘•ÍÉ¥‰•}É•ÍÕ±Ğ¹ÑáĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”((€€€€€€€€Œ=Á•¹M¡¥™ĞM€¬…ÍÍ¥¹•U%€¡•µÁÑä½¹¼µ½À½¸Ù…¹¥±±„-Õ‰•É¹•Ñ•Ì¤€´(€€€€€€€€Œ¹••‘•Ñ¼½¹™¥É´„Á½Ì…ÍÍ¥¹•U%……¥¹ÍĞÑ¡”AXÌ½¸µ‘¥Í¬(€€€€€€€€ŒAQ½İ¹•ÉÍ¡¥Àİ¡•¸‘¥…¹½Í¥¹œ€‰¡µ½è½Á•É…Ñ¥½¸¹½ĞÁ•Éµ¥ÑÑ•ˆ¸(€€€€€€€€ˆ‘-5ˆ•ĞÁ½€ˆ‘A=ˆ€µ¸€ˆ‘95MAˆp(€€€€€€€€€€€€µ¼©Í½¹Á…Ñ ôì¹µ•Ñ…‘…Ñ„¹…¹¹½Ñ…Ñ¥½¹Ì¹½Á•¹Í¡¥™Ñp¹¥¼½Íõì‰q¸‰õì¹ÍÁ•Œ¹Í•ÕÉ¥Ñå½¹Ñ•áÑõì‰q¸‰ôœp(€€€€€€€€€€€€ø€ˆ‘A=}%H½Í}…¹‘}Í•ÕÉ¥Ñå}½¹Ñ•áĞ¹ÑáĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”((€€€€€€€€Œ1½Ì™½È•Ù•Éä½¹Ñ…¥¹•È½¥¹¥Ğ½¹Ñ…¥¹•È½¸Ñ¡”Á½€´¹½Ğ©ÕÍĞ(€€€€€€€€Œ€‰Á½ÍÑÉ•Ìˆ€´Í¼AÑ,Í¥‘•…ÉÌ…É•¸ĞÍ¥±•¹Ñ±äÍ­¥ÁÁ•¸M…Ù•‰½Ñ (€€€€€€€€Œ¹•ÍÑ•¡•É”9™±…Ğ¥¹Ñ¼€‘A=1=M}%H¸(€€€€€€€Í…Ù•}…±±}Á½‘}±½Ì€ˆ‘95MAˆ€ˆ‘A=ˆ€ˆ‘A=}%H½Á½ÍÑÉ•ÍÅ°ˆ((€€€€€€€ÉÕ¹}Á½‘}ÍÅ° ¤ì(€€€€€€€€€€€€ˆ‘-5ˆ•á•Œ€µ¸€ˆ‘95MAˆ€ˆ‘A=ˆ€µŒÁ½ÍÑÉ•Ì€´´p(€€€€€€€€€€€€€€€ÁÍÅ°€µTÁ½ÍÑÉ•Ì€µŒ€ˆÄˆ€ø€ˆ‘A=}%H½Á½ÍÑÉ•ÍÅ°¼Èˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”(€€€€€€€ô((€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1PÙ•ÉÍ¥½¸ ¤ìˆ€€€€€€€€€€€€€€€€€€‰‘‰}Ù•ÉÍ¥½¸¹½ÕĞˆ(€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M!=\10ìˆ€€€€€€€€€€€€€€€€€€€€€€€€€€€‰Í¡½İ}…±°¹½ÕĞˆ(€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1P€¨I=4Á}ÍÑ…Ñ}É•Á±¥…Ñ¥½¸ìˆ€€‰É•Á±¥…Ñ¥½¸¹½ÕĞˆ(€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1P€¨I=4Á}ÍÑ…Ñ}‰İÉ¥Ñ•Èìˆ€€€€€‰‰İÉ¥Ñ•È¹½ÕĞˆ(€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1P€¨I=4Á}ÍÑ…Ñ}…É¡¥Ù•Èìˆ€€€€€‰…É¡¥Ù•È¹½ÕĞˆ(€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1P€¨I=4Á}ÍÑ…Ñ}ÍÕ‰ÍÉ¥ÁÑ¥½¸ìˆ€‰Á}ÍÑ…Ñ}ÍÕ‰ÍÉ¥ÁÑ¥½¸¹½ÕĞˆ((€€€€€€€€ŒM±½Ğ‘•Ñ…¥°€¬Ñ¡”]0•… ½¹”¥Ì…¹¡½É¥¹œ¸¥¹…Ñ¥Ù•}Í¥¹”É•Í•ÑÌ(€€€€€€€€Œ•…Í¥±ä…¹¥Ì¹½ĞÉ•±¥…‰±”½¸¥ÑÌ½İ¸™½È¡½Ü±½¹œ„Í±½Ğ¡…Ì‰••¸(€€€€€€€€ŒÍÑÕ¬€´É•ÍÑ…ÉÑ}±Í¸±…œ€¡É½ÍÌµ¡•­•……¥¹ÍĞ‰‘È¹É½ÕÁ}É•Á±Í±½ÑÍ}‘•Ñ…¥±Ì(€€€€€€€€Œ‰•±½Ü½¸A¤¥ÌÑ¡”¹Õµ‰•ÈÑ¼ÑÉÕÍĞ¸(€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1PÍ±½Ñ}¹…µ”°Í±½Ñ}ÑåÁ”°Á±Õ¥¸°‘…Ñ…‰…Í”°…Ñ¥Ù”°p)¥¹…Ñ¥Ù•}Í¥¹”°É•ÍÑ…ÉÑ}±Í¸°½¹™¥Éµ•‘}™±ÕÍ¡}±Í¸°p)Á}Í¥é•}ÁÉ•ÑÑä¡Á}İ…±}±Í¹}‘¥™˜¡Á}ÕÉÉ•¹Ñ}İ…±}±Í¸ ¤°É•ÍÑ…ÉÑ}±Í¸¤¤LÉ•Ñ…¥¹•‘}İ…°p)I=4Á}É•Á±¥…Ñ¥½¹}Í±½ÑÌìˆ€‰É•Á±¥…Ñ¥½¹}Í±½ÑÌ¹½ÕĞˆ((€€€€€€€€ŒI½±”=%Ì€´½¸„µÕ±Ñ¤µµ…ÍÑ•È	H½AÉ½ÕÀ°Ñ¡”Í…µ”É½±”¹…µ”(€€€€€€€€Œ•á¥ÍÑ¥¹œİ¥Ñ „%I9P½¥½¸•… ¹½‘”µ•…¹Ì¥Ğİ…ÌÉ•…Ñ•(€€€€€€€€Œ±½…±±ä½¸•… ¹½‘”¥¹ÍÑ•…½˜É•Á±¥…Ñ•Ù¥„½¹”0ÍÑ…Ñ•µ•¹Ğ¸(€€€€€€€€ŒQ¡…Ğµ¥Íµ…Ñ ¥Ì•á…Ñ±äİ¡…Ğ…ÕÍ•Ì€‰É½±”…±É•…‘ä•á¥ÍÑÌˆ€¼(€€€€€€€€Œ€‰İÉ¥Ñ•Èİ¥Ñ Á¥€¸¸¸¡…Ì‘¥•ˆÉ•Á±…ä±½½ÁÌ…™Ñ•È„É•½¹¹•Ğ¸(€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1PÉ½±¹…µ”°½¥I=4Á}É½±•Ì=IH	dÉ½±¹…µ”ìˆ€‰Á}É½±•Ì¹½ÕĞˆ((€€€€€€€EUIe}Pô‰M1P=1M¡ÍÑ…Ñ”°¥¹Ñ•É¹…°½‰…­É½Õ¹œ¤LÍÑ…Ñ”°½Õ¹Ğ ¨¤p)I=4Á}ÍÑ…Ñ}…Ñ¥Ù¥ÑäI=U@	d€Äp)U9%=810M1P€Q½Ñ…°œ°½Õ¹Ğ ¨¤I=4Á}ÍÑ…Ñ}…Ñ¥Ù¥Ñäp)=IH	d€¡ÍÑ…Ñ”ôQ½Ñ…°œ¤M°½Õ¹ĞMìˆ(€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€ˆ‘EUIe}Pˆ€‰…Ñ¥Ù¥Ñå}½Õ¹ÑÌ¹½ÕĞˆ((€€€€€€€€Œ€´´´´AÑ,€¼	HÁ•Èµ¹½‘”‘¥…¹½ÍÑ¥Ì€´´´´(€€€€€€€€ŒM¡•µ„¹…µ•Ì½Ù¥•İÌ‰•±½Ü™½±±½ÜA½ÍÑÉ•Ì¥ÍÑÉ¥‰ÕÑ•Ì‰‘È¸©€(€€€€€€€€Œµ½¹¥Ñ½É¥¹œ…Ñ…±½œ¸‘©ÕÍĞÑ¡”Í¡•µ„¹…µ”¡•É”¥˜„™ÕÑÕÉ”A(€€€€€€€€ŒÙ•ÉÍ¥½¸É•¹…µ•Ì¥Ğ€¡”¹œ¸Ñ¼ÍÁ½¬¸©€¤¸(€€€€€€€¥˜l€ˆ‘%M}Aˆ€ôÑÉÕ”tìÑ¡•¸(€€€€€€€€€€€¥˜l€µè€ˆ‘%IMQ}A}A=}95ˆtìÑ¡•¸(€€€€€€€€€€€€€€€%IMQ}A}A=}9Lôˆ‘95MAˆ(€€€€€€€€€€€€€€€%IMQ}A}A=}95ôˆ‘A=ˆ(€€€€€€€€€€€™¤((€€€€€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1P€¨I=4‰‘È¹¹½‘•}ÍÕµµ…Éäìˆ€€€€€€€€€€€€‰‰‘É}¹½‘•}ÍÕµµ…Éä¹½ÕĞˆ(€€€€€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1P€¨I=4‰‘È¹¹½‘•}Í±½ÑÌìˆ€€€€€€€€€€€€€€‰‰‘É}¹½‘•}Í±½ÑÌ¹½ÕĞˆ(€€€€€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1P€¨I=4‰‘È¹İ½É­•É}•ÉÉ½ÉÌ=IH	d•ÉÉ½É}Ñ¥µ”Mìˆp(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€‰‰‘É}İ½É­•É}•ÉÉ½ÉÌ¹½ÕĞˆ(€€€€€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1P€¨I=4‰‘È¹ÍÕ‰ÍÉ¥ÁÑ¥½¹}ÍÕµµ…Éäìˆ€€€€‰‰‘É}ÍÕ‰ÍÉ¥ÁÑ¥½¹}ÍÕµµ…Éä¹½ÕĞˆ(€€€€€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1P€¨I=4‰‘È¹É½ÕÁ}Ù•ÉÍ¥½¹Í}‘•Ñ…¥±Ììˆ€€‰‰‘É}É½ÕÁ}Ù•ÉÍ¥½¹Í}‘•Ñ…¥±Ì¹½ÕĞˆ(€€€€€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1P€¨I=4‰‘È¹É½ÕÁ}É…™Ñ}‘•Ñ…¥±Ììˆ€€€€€€‰‰‘É}É½ÕÁ}É…™Ñ}‘•Ñ…¥±Ì¹½ÕĞˆ(€€€€€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1P€¨I=4‰‘È¹É½ÕÁ}É•Á±Í±½ÑÍ}‘•Ñ…¥±Ììˆ€‰‰‘É}É½ÕÁ}É•Á±Í±½ÑÍ}‘•Ñ…¥±Ì¹½ÕĞˆ(€€€€€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1P€¨I=4‰‘È¹•Ù•¹Ñ}¡¥ÍÑ½Éä]!I•Ù•¹Ñ}ÑåÁ”€ô€İÉ¥Ñ•}±•…‘•Èœp)=IH	d•Ù•¹Ñ}Ñ¥µ”M1%5%P€ÈÀÀìˆ€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€‰‰‘É}İÉ¥Ñ•}±•…‘•É}¡¥ÍÑ½Éä¹½ÕĞˆ((€€€€€€€€€€€€Œ‰‘È¹ÍÕ‰ÍÉ¥ÁÑ¥½¸€ ¡Á•ÈµÍÕ‰ÍÉ¥ÁÑ¥½¸ÍÑ…ÑÕÌ°”¹œ¸€‰‘½İ¸ˆ¤¥ÌÑ¡”(€€€€€€€€€€€€ŒÉ•…°Í¥¹…°½¸İ¥Ñ¹•ÍÌ¹½‘•Ì€´Á}ÍÑ…Ñ}ÍÕ‰ÍÉ¥ÁÑ¥½¸¥Ì…±İ…åÌ(€€€€€€€€€€€€Œ•µÁÑäÑ¡•É”Í¥¹”A‘½•Í¸ĞÕÍ”¹…Ñ¥Ù”±½¥…°ÍÕ‰ÍÉ¥ÁÑ¥½¹Ì¸(€€€€€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1P€¨I=4‰‘È¹ÍÕ‰ÍÉ¥ÁÑ¥½¸ìˆ€€€€€€€€€€€€‰‰‘É}ÍÕ‰ÍÉ¥ÁÑ¥½¸¹½ÕĞˆ((€€€€€€€€€€€€Œ!…ÌÍ¡½İ¸€©‘¥™™•É•¹Ğ¨É½İÌ‘•Á•¹‘¥¹œ½¸İ¡¥ ¹½‘”å½ÔÅÕ•Éä€´(€€€€€€€€€€€€Œ…ÁÑÕÉ”¥ĞÁ•ÈµÁ½°¹½Ğ©ÕÍĞ½¹”™½ÈÑ¡”É½ÕÀ°Í¼Ñ¡…Ğ(€€€€€€€€€€€€Œ¥¹½¹Í¥ÍÑ•¹ä¥ÌÙ¥Í¥‰±”É…Ñ¡•ÈÑ¡…¸¡¥‘‘•¸‰•¡¥¹½¹”Í…µÁ±”¸(€€€€€€€€€€€ÉÕ¹}Á½‘}ÍÅ°€‰M1P€¨I=4‰‘È¹ÁÉ½áå}½¹™¥}ÍÕµµ…Éä=IH	dÁÉ½áå}¹…µ”ìˆp(€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€€‰‰‘É}ÁÉ½áå}½¹™¥}ÍÕµµ…Éä¹½ÕĞˆ((€€€€€€€€€€€€Œ9…Ñ¥Ù”1$°Á•Èµ¹½‘”Ù¥•Ü€¡½µÁ±•µ•¹ÑÌÑ¡”½¹”µÍ¡½ĞÉ½ÕÀ1$(€€€€€€€€€€€€Œ…±±Ì¥¸Í•Ñ¥½¸€Ø‰•±½Ü¤¸(€€€€€€€€€€€€ˆ‘-5ˆ•á•Œ€µ¸€ˆ‘95MAˆ€ˆ‘A=ˆ€µŒÁ½ÍÑÉ•Ì€´´p(€€€€€€€€€€€€€€€ÁÉ•Á±¥…Ñ¥½¸Í¡½Ü€´µÍ±½ÑÌ€ø€ˆ‘A=}%H½Á½ÍÑÉ•ÍÅ°½Á‘}É•Á±¥…Ñ¥½¹}Í±½ÑÌ¹½ÕĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”(€€€€€€€™¤((€€€€€€€€ŒA•Èµ‘…Ñ…‰…Í”‘••À‘¥Ù”(€€€€€€€±½…°	}1%MP(€€€€€€€	}1%MPô ˆ‘-5ˆ•á•Œ€µ¸€ˆ‘95MAˆ€ˆ‘A=ˆ€µŒÁ½ÍÑÉ•Ì€´´p(€€€€€€€€€€€ÁÍÅ°€µTÁ½ÍÑÉ•Ì€µĞ€µŒp(€€€€€€€€€€€€‰M1P‘…Ñ¹…µ”I=4Á}‘…Ñ…‰…Í”]!I‘…Ñ…±±½İ½¹¸9‘…Ñ¹…µ”9=P1%-€Ñ•µÁ±…Ñ””œìˆp(€€€€€€€€€€€€Èø½‘•Ø½¹Õ±°ğá…ÉÌ¤((€€€€€€€™½È¥¸€‘	}1%MPì‘¼(€€€€€€€€€€€•¡¼€ˆ€€€€€´ø½±±•Ñ¥¹œ™É½´…Ñ…‰…Í”è€‘ˆ(€€€€€€€€€€€±½…°	}MU	%Hôˆ‘A=}%H½Á½ÍÑÉ•ÍÅ°½‘‰|‘í	ôˆ(€€€€€€€€€€€µ­‘¥È€µÀ€ˆ‘	}MU	%Hˆ((€€€€€€€€€€€ÉÕ¹}‘‰}ÍÅ° ¤ì(€€€€€€€€€€€€€€€€ˆ‘-5ˆ•á•Œ€µ¸€ˆ‘95MAˆ€ˆ‘A=ˆ€µŒÁ½ÍÑÉ•Ì€´´p(€€€€€€€€€€€€€€€€€€€ÁÍÅ°€µTÁ½ÍÑÉ•Ì€µ€ˆ‘ˆ€µŒ€ˆÄˆ€ø€ˆ‘	}MU	%H¼Èˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”(€€€€€€€€€€€ô((€€€€€€€€€€€ÉÕ¹}‘‰}ÍÅ°€‰M1P€¨I=4Á}…Ù…¥±…‰±•}•áÑ•¹Í¥½¹Ì]!I¥¹ÍÑ…±±•‘}Ù•ÉÍ¥½¸%L9=P9U10ìˆp(€€€€€€€€€€€€€€€€‰•áÑ•¹Í¥½¹Ì¹½ÕĞˆ(€€€€€€€€€€€ÉÕ¹}‘‰}ÍÅ°€‰M1P€¨I=4Á}ÍÑ…Ñ}ÕÍ•É}Ñ…‰±•Ììˆ€‰Á}ÍÑ…Ñ}ÕÍ•É}Ñ…‰±•Ì¹½ÕĞˆ(€€€€€€€€€€€ÉÕ¹}‘‰}ÍÅ°€‰M1PÉ•±¹…µ”°¹}±¥Ù•}ÑÕÀ°¹}‘•…‘}ÑÕÀI=4Á}ÍÑ…Ñ}ÕÍ•É}Ñ…‰±•Ì=IH	d€ÌMìˆp(€€€€€€€€€€€€€€€€‰Ñ…‰±•}ÑÕÁ±•Ì¹½ÕĞˆ(€€€€€€€€€€€ÉÕ¹}‘‰}ÍÅ°€‰M1PÍ¡•µ…¹…µ”°É•±¹…µ”°p)Á}Í¥é•}ÁÉ•ÑÑä¡Á}É•±…Ñ¥½¹}Í¥é”¡É•±¥¤¤L…ÑÕ…±}Í¥é”°p)¹}‘•…‘}ÑÕÀ°±…ÍÑ}…ÕÑ½Ù…ÕÕ´p)I=4Á}ÍÑ…Ñ}…±±}Ñ…‰±•Ì=IH	d¹}‘•…‘}ÑÕÀMìˆ€‰‘…Ñ…‰…Í•}‰±½…Ğ¹½ÕĞˆ(€€€€€€€€€€€ÉÕ¹}‘‰}ÍÅ°€‰M1PÍ¡•µ…¹…µ”°É•±¹…µ”°¥¹‘•áÉ•±¹…µ”°p)Á}Í¥é•}ÁÉ•ÑÑä¡Á}É•±…Ñ¥½¹}Í¥é”¡¥¹‘•áÉ•±¥¤¤L¥¹‘•á}Í¥é”°¥‘á}Í…¸p)I=4Á}ÍÑ…Ñ}ÕÍ•É}¥¹‘•á•Ì=IH	dÁ}É•±…Ñ¥½¹}Í¥é”¡¥¹‘•áÉ•±¥¤Mìˆ€‰¥¹‘•á}‰±½…Ğ¹½ÕĞˆ(€€€€€€€€€€€ÉÕ¹}‘‰}ÍÅ°€‰M1P€¨I=4Á}±½­Ììˆ€‰Á}±½­Ì¹½ÕĞˆ(€€€€€€€€€€€ÉÕ¹}‘‰}ÍÅ°€‰M1P€¨I=4Á}ÍÑ…Ñ}…Ñ¥Ù¥Ñäìˆ€‰Á}ÍÑ…Ñ}…Ñ¥Ù¥Ñä¹½ÕĞˆ((€€€€€€€€€€€	1=-}DÄô‰M1Pp(€‰±½­•‘}±½­Ì¹Á¥€€€€€€€€€€€€€€L‰±½­•‘}Á¥°p(€‰±½­•‘}…Ñ¥Ù¥Ñä¹ÕÍ•¹…µ”€€€€€€€L‰±½­•‘}ÕÍ•È°p(€¹½Ü ¤€´‰±½­•‘}…Ñ¥Ù¥Ñä¹ÅÕ•Éå}ÍÑ…ÉĞL‰±½­•‘}‘ÕÉ…Ñ¥½¸°p(€‰±½­¥¹}±½­Ì¹Á¥€€€€€€€€€€€€€L‰±½­¥¹}Á¥°p(€‰±½­¥¹}…Ñ¥Ù¥Ñä¹ÕÍ•¹…µ”€€€€€€L‰±½­¥¹}ÕÍ•È°p(€¹½Ü ¤€´‰±½­¥¹}…Ñ¥Ù¥Ñä¹ÅÕ•Éå}ÍÑ…ÉĞL‰±½­¥¹}‘ÕÉ…Ñ¥½¸°p(€‰±½­•‘}…Ñ¥Ù¥Ñä¹ÅÕ•Éä€€€€€€€€€L‰±½­•‘}ÍÑ…Ñ•µ•¹Ğ°p(€‰±½­¥¹}…Ñ¥Ù¥Ñä¹ÅÕ•Éä€€€€€€€€L‰±½­¥¹}ÍÑ…Ñ•µ•¹Ğp)I=4Á}…Ñ…±½œ¹Á}±½­ÌL‰±½­•‘}±½­Ìp))=%8Á}…Ñ…±½œ¹Á}ÍÑ…Ñ}…Ñ¥Ù¥ÑäL‰±½­•‘}…Ñ¥Ù¥Ñä€=8‰±½­•‘}…Ñ¥Ù¥Ñä¹Á¥€€ô‰±½­•‘}±½­Ì¹Á¥p))=%8Á}…Ñ…±½œ¹Á}±½­ÌL‰±½­¥¹}±½­Ìp(€=8‰±½­¥¹}±½­Ì¹±½­ÑåÁ”€ô‰±½­•‘}±½­Ì¹±½­ÑåÁ”p(9‰±½­¥¹}±½­Ì¹Q	M€€€€€€€€€%L9=P%MQ%9PI=4‰±½­•‘}±½­Ì¹Q	Mp(9‰±½­¥¹}±½­Ì¹É•±…Ñ¥½¸€€€€€€€€€%L9=P%MQ%9PI=4‰±½­•‘}±½­Ì¹É•±…Ñ¥½¸p(9‰±½­¥¹}±½­Ì¹Á…”€€€€€€€€€€€€€%L9=P%MQ%9PI=4‰±½­•‘}±½­Ì¹Á…”p(9‰±½­¥¹}±½­Ì¹ÑÕÁ±”€€€€€€€€€€€€%L9=P%MQ%9PI=4‰±½­•‘}±½­Ì¹ÑÕÁ±”p(9‰±½­¥¹}±½­Ì¹Ù¥ÉÑÕ…±á¥€€€€€€€%L9=P%MQ%9PI=4‰±½­•‘}±½­Ì¹Ù¥ÉÑÕ…±á¥p(9‰±½­¥¹}±½­Ì¹ÑÉ…¹Í…Ñ¥½¹¥€€€€%L9=P%MQ%9PI=4‰±½­•‘}±½­Ì¹ÑÉ…¹Í…Ñ¥½¹¥p(9‰±½­¥¹}±½­Ì¹±…ÍÍ¥€€€€€€€€€€%L9=P%MQ%9PI=4‰±½­•‘}±½­Ì¹±…ÍÍ¥p(9‰±½­¥¹}±½­Ì¹½‰©¥€€€€€€€€€€€€%L9=P%MQ%9PI=4‰±½­•‘}±½­Ì¹½‰©¥p(9‰±½­¥¹}±½­Ì¹½‰©ÍÕ‰¥€€€€€€€€€%L9=P%MQ%9PI=4‰±½­•‘}±½­Ì¹½‰©ÍÕ‰¥p(9‰±½­¥¹}±½­Ì¹Á¥€„ô‰±½­•‘}±½­Ì¹Á¥p))=%8Á}…Ñ…±½œ¹Á}ÍÑ…Ñ}…Ñ¥Ù¥ÑäL‰±½­¥¹}…Ñ¥Ù¥Ñä=8‰±½­¥¹}…Ñ¥Ù¥Ñä¹Á¥€ô‰±½­¥¹}±½­Ì¹Á¥p)]!I9=P‰±½­•‘}±½­Ì¹É…¹Ñ•ìˆ(€€€€€€€€€€€ÉÕ¹}‘‰}ÍÅ°€ˆ‘	1=-}DÄˆ€‰‰±½­¥¹}…¹…±åÍ¥Í}‘•Ñ…¥±•¹½ÕĞˆ((€€€€€€€€€€€	1=-}DÈô‰M1P…Ñ¥Ù¥Ñä¹Á¥°…Ñ¥Ù¥Ñä¹ÕÍ•¹…µ”°…Ñ¥Ù¥Ñä¹ÅÕ•Éä°p(€‰±½­¥¹œ¹Á¥L‰±½­¥¹}¥°‰±½­¥¹œ¹ÅÕ•ÉäL‰±½­¥¹}ÅÕ•Éäp)I=4Á}ÍÑ…Ñ}…Ñ¥Ù¥ÑäL…Ñ¥Ù¥Ñäp))=%8Á}ÍÑ…Ñ}…Ñ¥Ù¥ÑäL‰±½­¥¹œ=8‰±½­¥¹œ¹Á¥€ô9d¡Á}‰±½­¥¹}Á¥‘Ì¡…Ñ¥Ù¥Ñä¹Á¥¤¤ìˆ(€€€€€€€€€€€ÉÕ¹}‘‰}ÍÅ°€ˆ‘	1=-}DÈˆ€‰‰±½­¥¹}ÍÕµµ…Éä¹½ÕĞˆ(€€€€€€€‘½¹”(€€€‘½¹”)ô()™½ÈP¥¸€ˆ‘íQIQMmuôˆì‘¼(€€€½±±•Ñ}±ÕÍÑ•È€ˆ‘íP”•ğ©ôˆ€ˆ‘íPŒŒ©ñôˆ)‘½¹”((Œ€´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´(Œ€Ø¸A½	HI=U@µ]%%9=MQ%L€¡½¹”°Ù¥„½¹”É•ÁÉ•Í•¹Ñ…Ñ¥Ù”¹½‘”¤(Œ€´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´)¥˜l€ˆ‘%M}Aˆ€ôÑÉÕ”t€˜˜l€µ¸€ˆ‘%IMQ}A}A=}95ˆtìÑ¡•¸(€€€•¡¼€ˆˆ(€€€•¡¼€ˆôôô½±±•Ñ¥¹œA½	HÉ½ÕÀµİ¥‘”‘¥…¹½ÍÑ¥Ì€¡Ù¥„€‘í%IMQ}A}A=}95ô¤€ôôôˆ(€€€%Hôˆ‘5%9}%H½Á‘}É½ÕÁ}¥¹™¼ˆ((€€€€Œ9…Ñ¥Ù”Á‘€1$€´½ÁÁ½ÉÑÕ¹¥ÍÑ¥Œ¸%ĞÍ¡¥ÁÌ¥¹Í¥‘”Ñ¡”Á½ÍÑÉ•ÍÅ°µÁ(€€€€Œ¥µ…”½¸µ½ÍĞAÑ,‰Õ¥±‘Ì°‰ÕĞ¹••‘Ì„É•Í½±Ù…‰±”M8½±½…°…ÕÑ Ñ¼(€€€€ŒÉÕ¸¹½¸µ¥¹Ñ•É…Ñ¥Ù•±ä¸%˜Ñ¡•Í”™¥±•Ì½µ”‰…¬•µÁÑä°É”µÉÕ¸µ…¹Õ…±±ä(€€€€Œİ¥Ñ …¸•áÁ±¥¥Ğ€´µ‘Í¸……¥¹ÍĞ½¹”½˜Ñ¡”Á½‘Ì¸(€€€™½ÈMU	5¥¸¡•¬µ¡•…±Ñ Í¡½ÜµÉ½ÕÁÌÍ¡½Üµ¹½‘•ÌÍ¡½ÜµÉ…™Ğì‘¼(€€€€€€€=UQ%1ô‰Á‘|¡•¡¼€ˆ‘MU	5ˆğÑÈ€œ´œ€|œ¤¹½ÕĞˆ(€€€€€€€€ˆ‘-5ˆ•á•Œ€µ¸€ˆ‘%IMQ}A}A=}9Lˆ€ˆ‘%IMQ}A}A=}95ˆ€µŒÁ½ÍÑÉ•Ì€´´p(€€€€€€€€€€€Á€ˆ‘MU	5ˆ€ø€ˆ‘%H¼‘=UQ%1ˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”(€€€‘½¹”((€€€€ˆ‘-5ˆ•ĞÁ‘É½ÕÁÌ€µ€µ¼å…µ°€ø€ˆ‘%H½Á‘É½ÕÁÌ¹å…µ°ˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”(€€€€ˆ‘-5ˆ•ĞÁ‘É½ÕÁ±•…¹ÕÁÌ€µ€µ¼å…µ°€ø€ˆ‘%H½Á‘É½ÕÁ±•…¹ÕÁÌ¹å…µ°ˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”((€€€€ŒAAÉ½áä¥Ì„Í•Á…É…Ñ”½µÁ½¹•¹Ğ½•Á±½åµ•¹Ğ™É½´Ñ¡”‘…Ñ„µ¹½‘”Á½‘Ì(€€€€Œ½±±•Ñ•¥¸Í•Ñ¥½¸€Ô…‰½Ù”€´¥Ğ¹••‘Ì¥ÑÌ½İ¸‘•ÍÉ¥‰”­±½Ì°¹½Ğ(€€€€Œ©ÕÍĞÑ¡”½¹¹•Ñ¥½¸É½ÕÑ¥¹œÙ¥Í¥‰±”™É½´‰‘È¹ÁÉ½áå}½¹™¥}ÍÕµµ…Éä¸(€€€•¡¼€ˆ€½±±•Ñ¥¹œAAÉ½áäÁ½‘¥…¹½ÍÑ¥Ì¸¸¸ˆ(€€€µ­‘¥È€µÀ€ˆ‘%H½ÁÉ½áå}Á½‘Ìˆ(€€€AI=ae}A=M}I\ô ˆ‘-5ˆ•ĞÁ½‘Ì€µ€´µ¹¼µ¡•…‘•ÉÌ€Èø½‘•Ø½¹Õ±°ğÉ•À€µ¤€´´€œµÁÉ½áä´œ€¤(€€€¥˜l€µ¸€ˆ‘AI=ae}A=M}I\ˆtìÑ¡•¸(€€€€€€€İ¡¥±”%LôÉ•…€µÈ±¥¹”ì‘¼(€€€€€€€€€€€l€µè€ˆ‘í±¥¹”¼¼€½ôˆt€˜˜½¹Ñ¥¹Õ”(€€€€€€€€€€€A}9Lô¡…İ¬€íÁÉ¥¹Ğ€Åôœ€ğğğ€ˆ‘±¥¹”ˆ¤(€€€€€€€€€€€A}95ô¡…İ¬€íÁÉ¥¹Ğ€Éôœ€ğğğ€ˆ‘±¥¹”ˆ¤(€€€€€€€€€€€A%Hôˆ‘%H½ÁÉ½áå}Á½‘Ì¼‘íA}9Mõ}|‘íA}95ôˆ(€€€€€€€€€€€µ­‘¥È€µÀ€ˆ‘A%Hˆ(€€€€€€€€€€€€ˆ‘-5ˆ‘•ÍÉ¥‰”Á½€ˆ‘A}95ˆ€µ¸€ˆ‘A}9Lˆ€ø€ˆ‘A%H½‘•ÍÉ¥‰•}É•ÍÕ±Ğ¹ÑáĞˆ€Èø½‘•Ø½¹Õ±°ñğÑÉÕ”(€€€€€€€€€€€Í…Ù•}…±±}Á½‘}±½Ì€ˆ‘A}9Lˆ€ˆ‘A}95ˆ€ˆ‘A%Hˆ(€€€€€€€‘½¹”€ğğğ€ˆ‘AI=ae}A=M}I\ˆ(€€€•±Í”(€€€€€€€•¡¼€ˆ€]I9%9è9¼AAÉ½áäÁ½‘Ì™½Õ¹€¡±…‰•°½¹…µ”Á…ÑÑ•É¸€œµÁÉ½áä´œ¤¸ˆ(€€€™¤)™¤((Œ€´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´(Œ€Ü¸A-%9(Œ€´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´)•¡¼€ˆ´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´ˆ)Ñ…È€µé˜€ˆ‘í5%9}%Iô¹Ñ…È¹èˆ€ˆ‘5%9}%Hˆ)É´€µÉ˜€ˆ‘5%9}%Hˆ)•¡¼€‰½±±•Ñ¥½¸½µÁ±•Ñ”è€‘í5%9}%Iô¹Ñ…È¹èˆ(
+# Operator RBAC - RBAC/SCC and OLM-vs-GitOps ClusterRole drift (a GitOps
+# snapshot of an OLM-owned ClusterRole reapplied to another cluster) has
+# been the actual root cause behind reconciliation-failure tickets that
+# initially looked like a pure PGD/BDR problem.
+if [ "$IS_PGD" = true ]; then
+    "$KCMD" describe clusterrole pgd-operator-manager-role \
+        > "$MAIN_DIR/operator_info/operator_clusterrole.txt" 2>/dev/null || true
+else
+    "$KCMD" describe clusterrole postgresql-operator-manager \
+        > "$MAIN_DIR/operator_info/operator_clusterrole.txt" 2>/dev/null || true
+fi
+"$KCMD" get clusterrole --selector=olm.owner.kind=ClusterServiceVersion -o yaml \
+    > "$MAIN_DIR/operator_info/olm_owned_clusterroles.yaml" 2>/dev/null || true
+"$KCMD" get clusterrolebinding -o yaml \
+    > "$MAIN_DIR/operator_info/clusterrolebindings.yaml" 2>/dev/null || true
+
+BARMAN_POD_INFO=$(find_op_pod_by_name "barman-cloud")
+if [ -n "$BARMAN_POD_INFO" ]; then
+    B_NS=$(awk '{print $1}' <<< "$BARMAN_POD_INFO")
+    B_NAME=$(awk '{print $2}' <<< "$BARMAN_POD_INFO")
+    "$KCMD" get pod "$B_NAME" -n "$B_NS" \
+        -o jsonpath='{.spec.containers[0].image}' \
+        > "$MAIN_DIR/operator_info/barman_plugin_version.txt" 2>/dev/null || true
+fi
+
+"$KCMD" get pv > "$MAIN_DIR/storage/all_pv_list.txt" 2>/dev/null || true
+
+# ------------------------------------------------------------
+# 5. PER-CLUSTER / PER-POD / PER-DATABASE COLLECTION
+# ------------------------------------------------------------
+FIRST_PGD_POD_NS=""
+FIRST_PGD_POD_NAME=""
+
+collect_cluster() {
+    local NAMESPACE="$1"
+    local CLUSTER_NAME="$2"
+    local CDIR="$MAIN_DIR/clusters/${NAMESPACE}__${CLUSTER_NAME}"
+    mkdir -p "$CDIR/cluster_info" "$CDIR/pods"
+
+    echo "=== Collecting cluster: ${NAMESPACE}/${CLUSTER_NAME} ==="
+
+    # ---- Cluster-level diagnostics ----
+    if [ "$YQ_AVAILABLE" = true ]; then
+        "$KCMD" get cluster "$CLUSTER_NAME" -n "$NAMESPACE" -o yaml 2>/dev/null | \
+            yq 'del(.status,
+                    .metadata.uid,
+                    .metadata.selfLink,
+                    .metadata.resourceVersion,
+                    .metadata.creationTimestamp,
+                    .metadata.generation,
+                    .metadata.managedFields)' \
+            > "$CDIR/cluster_info/cluster_definition_clean.yaml" 2>/dev/null || true
+    fi
+
+    "$KCMD" get cluster "$CLUSTER_NAME" -n "$NAMESPACE" -o yaml \
+        > "$CDIR/cluster_info/cluster_definition_full.yaml" 2>/dev/null || true
+
+    "$KCMD" "$OP_CMD" status "$CLUSTER_NAME" -n "$NAMESPACE" \
+        > "$CDIR/cluster_info/cluster_status.txt" 2>/dev/null || true
+
+    "$KCMD" describe cluster "$CLUSTER_NAME" -n "$NAMESPACE" \
+        > "$CDIR/cluster_info/cluster_describe.txt" 2>/dev/null || true
+
+    "$KCMD" get backup -n "$NAMESPACE" -o yaml \
+        > "$CDIR/cluster_info/backups.yaml" 2>/dev/null || true
+    "$KCMD" "$OP_CMD" get backups "$CLUSTER_NAME" -n "$NAMESPACE" \
+        > "$CDIR/cluster_info/backups_summary.txt" 2>/dev/null || true
+
+    # ScheduledBackups and their controller Jobs - a stuck ScheduledBackup
+    # (reconciliation loop, "already exists" errors on the target Backup
+    # name) or a hung backup Job has been the root cause in real PGD4K cases.
+    "$KCMD" get scheduledbackup -n "$NAMESPACE" -o yaml \
+        > "$CDIR/cluster_info/scheduledbackups.yaml" 2>/dev/null || true
+    "$KCMD" get jobs -n "$NAMESPACE" -o wide \
+        > "$CDIR/cluster_info/jobs.txt" 2>/dev/null || true
+
+    # PGDGroupCleanup objects - completed/stuck cleanups are frequently
+    # mistaken for (or actually are) the trigger behind a later outage.
+    "$KCMD" get pgdgroupcleanups -n "$NAMESPACE" -o yaml \
+        > "$CDIR/cluster_info/pgdgroupcleanups.yaml" 2>/dev/null || true
+
+    "$KCMD" get events -n "$NAMESPACE" --sort-by='.lastTimestamp' \
+        > "$CDIR/cluster_info/namespace_events.txt" 2>/dev/null || true
+
+    "$KCMD" get pvc -n "$NAMESPACE" \
+        > "$CDIR/cluster_info/pvc_list.txt" 2>/dev/null || true
+
+    # Secret *names/types* only (never contents) - to catch missing
+    # image-pull secrets (FailedToRetrieveImagePullSecret) without touching
+    # credential data.
+    "$KCMD" get secrets -n "$NAMESPACE" \
+        > "$CDIR/cluster_info/secrets_list.txt" 2>/dev/null || true
+
+    # Namespace definition - carries OpenShift SCC/UID-range annotations
+    # (openshift.io/sa.scc.uid-range, supplemental-groups) that matter when
+    # diagnosing "chmod ... operation not permitted" PGDATA ownership issues.
+    "$KCMD" get namespace "$NAMESPACE" -o yaml \
+        > "$CDIR/cluster_info/namespace_definition.yaml" 2>/dev/null || true
+
+    # ---- Pod discovery ----
+    local PODS
+    PODS=$("$KCMD" get pods -n "$NAMESPACE" -l "cnpg.io/cluster=$CLUSTER_NAME" \
+        -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
+
+    if [ -z "$PODS" ]; then
+        PODS=$("$KCMD" get pods -n "$NAMESPACE" --no-headers \
+            -o custom-columns=":metadata.name" 2>/dev/null | grep "^${CLUSTER_NAME}-" | tr '\n' ' ')
+    fi
+
+    if [ -z "$PODS" ]; then
+        echo "  WARNING: No pods found for cluster '${CLUSTER_NAME}' in namespace '${NAMESPACE}'."
+        return
+    fi
+
+    for POD in $PODS; do
+        echo "  --- Processing Pod: $POD ---"
+        local POD_DIR="$CDIR/pods/$POD"
+        mkdir -p "$POD_DIR/postgresql"
+
+        "$KCMD" describe pod "$POD" -n "$NAMESPACE" \
+            > "$POD_DIR/describe_result.txt" 2>/dev/null || true
+
+        # OpenShift SCC + assigned UID (empty/no-op on vanilla Kubernetes) -
+        # needed to confirm a pod's assigned UID against the PV's on-disk
+        # PGDATA ownership when diagnosing "chmod: operation not permitted".
+        "$KCMD" get pod "$POD" -n "$NAMESPACE" \
+            -o jsonpath='{.metadata.annotations.openshift\.io/scc}{"\n"}{.spec.securityContext}{"\n"}' \
+            > "$POD_DIR/scc_and_security_context.txt" 2>/dev/null || true
+
+        # Logs for every container/init container on the pod - not just
+        # "postgres" - so PGD4K sidecars aren't silently skipped. Saved both
+        # nested here AND flat into $PODLOGS_DIR.
+        save_all_pod_logs "$NAMESPACE" "$POD" "$POD_DIR/postgresql"
+
+        run_pod_sql() {
+            "$KCMD" exec -n "$NAMESPACE" "$POD" -c postgres -- \
+                psql -U postgres -c "$1" > "$POD_DIR/postgresql/$2" 2>/dev/null || true
+        }
+
+        run_pod_sql "SELECT version();"                  "db_version.out"
+        run_pod_sql "SHOW ALL;"                           "show_all.out"
+        run_pod_sql "SELECT * FROM pg_stat_replication;"  "replication.out"
+        run_pod_sql "SELECT * FROM pg_stat_bgwriter;"     "bgwriter.out"
+        run_pod_sql "SELECT * FROM pg_stat_archiver;"     "archiver.out"
+        run_pod_sql "SELECT * FROM pg_stat_subscription;" "pg_stat_subscription.out"
+
+        # Slot detail + the WAL each one is anchoring. inactive_since resets
+        # easily and is not reliable on its own for how long a slot has been
+        # stuck - restart_lsn lag (cross-checked against bdr.group_replslots_details
+        # below on PGD) is the number to trust.
+        run_pod_sql "SELECT slot_name, slot_type, plugin, database, active, \
+inactive_since, restart_lsn, confirmed_flush_lsn, \
+pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)) AS retained_wal \
+FROM pg_replication_slots;" "replication_slots.out"
+
+        # Role OIDs - on a multi-master BDR/PGD group, the same role name
+        # existing with a DIFFERENT oid on each node means it was created
+        # locally on each node instead of replicated via one DDL statement.
+        # That mismatch is exactly what causes "role already exists" /
+        # "writer with pid ... has died" replay loops after a reconnect.
+        run_pod_sql "SELECT rolname, oid FROM pg_roles ORDER BY rolname;" "pg_roles.out"
+
+        QUERY_ACT="SELECT COALESCE(state,'internal/background') AS state, count(*) \
+FROM pg_stat_activity GROUP BY 1 \
+UNION ALL SELECT 'Total', count(*) FROM pg_stat_activity \
+ORDER BY (state='Total') ASC, count DESC;"
+        run_pod_sql "$QUERY_ACT" "activity_counts.out"
+
+        # ---- PGD4K / BDR per-node diagnostics ----
+        # Schema names/views below follow EDB Postgres Distributed's `bdr.*`
+        # monitoring catalog. Adjust the schema name here if a future PGD
+        # version renames it (e.g. to `spock.*`).
+        if [ "$IS_PGD" = true ]; then
+            if [ -z "$FIRST_PGD_POD_NAME" ]; then
+                FIRST_PGD_POD_NS="$NAMESPACE"
+                FIRST_PGD_POD_NAME="$POD"
+            fi
+
+            run_pod_sql "SELECT * FROM bdr.node_summary;"            "bdr_node_summary.out"
+            run_pod_sql "SELECT * FROM bdr.node_slots;"              "bdr_node_slots.out"
+            run_pod_sql "SELECT * FROM bdr.worker_errors ORDER BY error_time DESC;" \
+                                                                      "bdr_worker_errors.out"
+            run_pod_sql "SELECT * FROM bdr.subscription_summary;"    "bdr_subscription_summary.out"
+            run_pod_sql "SELECT * FROM bdr.group_versions_details;"  "bdr_group_versions_details.out"
+            run_pod_sql "SELECT * FROM bdr.group_raft_details;"      "bdr_group_raft_details.out"
+            run_pod_sql "SELECT * FROM bdr.group_replslots_details;" "bdr_group_replslots_details.out"
+            run_pod_sql "SELECT * FROM bdr.event_history WHERE event_type = 'write_leader' \
+ORDER BY event_time DESC LIMIT 200;"                                 "bdr_write_leader_history.out"
+
+            # bdr.subscription (per-subscription status, e.g. "down") is the
+            # real signal on witness nodes - pg_stat_subscription is always
+            # empty there since PGD doesn't use native logical subscriptions.
+            run_pod_sql "SELECT * FROM bdr.subscription;"            "bdr_subscription.out"
+
+            # Has shown *different* rows depending on which node you query -
+            # capture it per-pod, not just once for the group, so that
+            # inconsistency is visible rather than hidden behind one sample.
+            run_pod_sql "SELECT * FROM bdr.proxy_config_summary ORDER BY proxy_name;" \
+                                                                       "bdr_proxy_config_summary.out"
+
+            # Native CLI, per-node view (complements the one-shot group CLI
+            # calls in section 6 below).
+            "$KCMD" exec -n "$NAMESPACE" "$POD" -c postgres -- \
+                pgd replication show --slots > "$POD_DIR/postgresql/pgd_replication_slots.out" 2>/dev/null || true
+        fi
+
+        # Per-database deep dive
+        local DB_LIST
+        DB_LIST=$("$KCMD" exec -n "$NAMESPACE" "$POD" -c postgres -- \
+            psql -U postgres -t -c \
+            "SELECT datname FROM pg_database WHERE datallowconn AND datname NOT LIKE 'template%';" \
+            2>/dev/null | xargs)
+
+        for DB in $DB_LIST; do
+            echo "     -> Collecting from Database: $DB"
+            local DB_SUBDIR="$POD_DIR/postgresql/db_${DB}"
+            mkdir -p "$DB_SUBDIR"
+
+            run_db_sql() {
+                "$KCMD" exec -n "$NAMESPACE" "$POD" -c postgres -- \
+                    psql -U postgres -d "$DB" -c "$1" > "$DB_SUBDIR/$2" 2>/dev/null || true
+            }
+
+            run_db_sql "SELECT * FROM pg_available_extensions WHERE installed_version IS NOT NULL;" \
+                "extensions.out"
+            run_db_sql "SELECT * FROM pg_stat_user_tables;" "pg_stat_user_tables.out"
+            run_db_sql "SELECT relname, n_live_tup, n_dead_tup FROM pg_stat_user_tables ORDER BY 3 DESC;" \
+                "table_tuples.out"
+            run_db_sql "SELECT schemaname, relname, \
+pg_size_pretty(pg_relation_size(relid)) AS actual_size, \
+n_dead_tup, last_autovacuum \
+FROM pg_stat_all_tables ORDER BY n_dead_tup DESC;" "database_bloat.out"
+            run_db_sql "SELECT schemaname, relname, indexrelname, \
+pg_size_pretty(pg_relation_size(indexrelid)) AS index_size, idx_scan \
+FROM pg_stat_user_indexes ORDER BY pg_relation_size(indexrelid) DESC;" "index_bloat.out"
+            run_db_sql "SELECT * FROM pg_locks;" "pg_locks.out"
+            run_db_sql "SELECT * FROM pg_stat_activity;" "pg_stat_activity.out"
+
+            BLOCK_Q1="SELECT \
+  blocked_locks.pid               AS blocked_pid, \
+  blocked_activity.usename        AS blocked_user, \
+  now() - blocked_activity.query_start AS blocked_duration, \
+  blocking_locks.pid              AS blocking_pid, \
+  blocking_activity.usename       AS blocking_user, \
+  now() - blocking_activity.query_start AS blocking_duration, \
+  blocked_activity.query          AS blocked_statement, \
+  blocking_activity.query         AS blocking_statement \
+FROM pg_catalog.pg_locks AS blocked_locks \
+JOIN pg_catalog.pg_stat_activity AS blocked_activity  ON blocked_activity.pid  = blocked_locks.pid \
+JOIN pg_catalog.pg_locks AS blocking_locks \
+  ON blocking_locks.locktype = blocked_locks.locktype \
+ AND blocking_locks.DATABASE          IS NOT DISTINCT FROM blocked_locks.DATABASE \
+ AND blocking_locks.relation          IS NOT DISTINCT FROM blocked_locks.relation \
+ AND blocking_locks.page              IS NOT DISTINCT FROM blocked_locks.page \
+ AND blocking_locks.tuple             IS NOT DISTINCT FROM blocked_locks.tuple \
+ AND blocking_locks.virtualxid        IS NOT DISTINCT FROM blocked_locks.virtualxid \
+ AND blocking_locks.transactionid     IS NOT DISTINCT FROM blocked_locks.transactionid \
+ AND blocking_locks.classid           IS NOT DISTINCT FROM blocked_locks.classid \
+ AND blocking_locks.objid             IS NOT DISTINCT FROM blocked_locks.objid \
+ AND blocking_locks.objsubid          IS NOT DISTINCT FROM blocked_locks.objsubid \
+ AND blocking_locks.pid != blocked_locks.pid \
+JOIN pg_catalog.pg_stat_activity AS blocking_activity ON blocking_activity.pid = blocking_locks.pid \
+WHERE NOT blocked_locks.granted;"
+            run_db_sql "$BLOCK_Q1" "blocking_analysis_detailed.out"
+
+            BLOCK_Q2="SELECT activity.pid, activity.usename, activity.query, \
+  blocking.pid AS blocking_id, blocking.query AS blocking_query \
+FROM pg_stat_activity AS activity \
+JOIN pg_stat_activity AS blocking ON blocking.pid = ANY(pg_blocking_pids(activity.pid));"
+            run_db_sql "$BLOCK_Q2" "blocking_summary.out"
+        done
+    done
+}
+
+for T in "${TARGETS[@]}"; do
+    collect_cluster "${T%%|*}" "${T##*|}"
+done
+
+# ------------------------------------------------------------
+# 6. PGD/BDR GROUP-WIDE DIAGNOSTICS (once, via one representative node)
+# ------------------------------------------------------------
+if [ "$IS_PGD" = true ] && [ -n "$FIRST_PGD_POD_NAME" ]; then
+    echo ""
+    echo "=== Collecting PGD/BDR group-wide diagnostics (via ${FIRST_PGD_POD_NAME}) ==="
+    GDIR="$MAIN_DIR/pgd_group_info"
+
+    # Native `pgd` CLI - opportunistic. It ships inside the postgresql-pgd
+    # image on most PGD4K builds, but needs a resolvable DSN/local auth to
+    # run non-interactively. If these files come back empty, re-run manually
+    # with an explicit --dsn against one of the pods.
+    for SUBCMD in check-health show-groups show-nodes show-raft; do
+        OUTFILE="pgd_$(echo "$SUBCMD" | tr '-' '_').out"
+        "$KCMD" exec -n "$FIRST_PGD_POD_NS" "$FIRST_PGD_POD_NAME" -c postgres -- \
+            pgd "$SUBCMD" > "$GDIR/$OUTFILE" 2>/dev/null || true
+    done
+
+    "$KCMD" get pgdgroups -A -o yaml > "$GDIR/pgdgroups.yaml" 2>/dev/null || true
+    "$KCMD" get pgdgroupcleanups -A -o yaml > "$GDIR/pgdgroupcleanups.yaml" 2>/dev/null || true
+
+    # PGD Proxy is a separate component/Deployment from the data-node pods
+    # collected in section 5 above - it needs its own describe+logs, not
+    # just the connection routing visible from bdr.proxy_config_summary.
+    echo "  Collecting PGD Proxy pod diagnostics..."
+    mkdir -p "$GDIR/proxy_pods"
+    PROXY_PODS_RAW=$("$KCMD" get pods -A --no-headers 2>/dev/null | grep -i -- '-proxy-' )
+    if [ -n "$PROXY_PODS_RAW" ]; then
+        while IFS= read -r line; do
+            [ -z "${line// /}" ] && continue
+            P_NS=$(awk '{print $1}' <<< "$line")
+            P_NAME=$(awk '{print $2}' <<< "$line")
+            PDIR="$GDIR/proxy_pods/${P_NS}__${P_NAME}"
+            mkdir -p "$PDIR"
+            "$KCMD" describe pod "$P_NAME" -n "$P_NS" > "$PDIR/describe_result.txt" 2>/dev/null || true
+            save_all_pod_logs "$P_NS" "$P_NAME" "$PDIR"
+        done <<< "$PROXY_PODS_RAW"
+    else
+        echo "  WARNING: No PGD Proxy pods found (label/name pattern '-proxy-')."
+    fi
+fi
+
+# ------------------------------------------------------------
+# 7. PACKAGING
+# ------------------------------------------------------------
+echo "--------------------------------------------------------"
+tar -czf "${MAIN_DIR}.tar.gz" "$MAIN_DIR"
+rm -rf "$MAIN_DIR"
+echo "Collection complete: ${MAIN_DIR}.tar.gz"
